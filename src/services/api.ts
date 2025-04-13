@@ -255,23 +255,27 @@ export const api = {
         // First try to use the API
         try {
           return await api.post("/calculate", formData, isAuthenticated);
-        } catch (error) {
+        } catch (apiError) {
           console.log("API calculation failed, using mock calculation instead");
-          // If API fails, try to store calculation in Supabase
+          // If API fails, use the mock calculation
           const result = mockCalculation(formData);
           
-          // If authenticated, store the result in Supabase
+          // If authenticated, store the result in local storage
+          // (We'll implement proper Supabase storage later when we create the calculations table)
           if (isAuthenticated) {
-            const { error } = await supabase
-              .from('calculations')
-              .insert({
+            try {
+              // Store in localStorage temporarily until we create the calculations table
+              const existingData = localStorage.getItem('calculations') || '[]';
+              const calculations = JSON.parse(existingData);
+              calculations.push({
                 user_id: useAuthStore.getState().user?.id,
                 input_data: formData,
-                result_data: result
+                result_data: result,
+                created_at: new Date().toISOString()
               });
-            
-            if (error) {
-              console.error("Failed to store calculation in Supabase:", error);
+              localStorage.setItem('calculations', JSON.stringify(calculations));
+            } catch (storageError) {
+              console.error("Failed to store calculation in localStorage:", storageError);
             }
           }
           
@@ -288,19 +292,20 @@ export const api = {
         // Try to use the API first
         try {
           return await api.get("/user/calculations", true);
-        } catch (error) {
-          console.log("API getUserCalculations failed, using Supabase instead");
-          // If API fails, try to get calculations from Supabase
-          const { data, error } = await supabase
-            .from('calculations')
-            .select('*')
-            .eq('user_id', useAuthStore.getState().user?.id);
+        } catch (apiError) {
+          console.log("API getUserCalculations failed, using localStorage instead");
+          // If API fails, get calculations from localStorage
+          try {
+            const existingData = localStorage.getItem('calculations') || '[]';
+            const calculations = JSON.parse(existingData);
+            const userId = useAuthStore.getState().user?.id;
             
-          if (error) {
-            throw error;
+            // Filter calculations by user ID
+            return calculations.filter((calc: any) => calc.user_id === userId);
+          } catch (storageError) {
+            console.error("Failed to get calculations from localStorage:", storageError);
+            return [];
           }
-          
-          return data;
         }
       } catch (error) {
         console.error("Get user calculations failed:", error);
