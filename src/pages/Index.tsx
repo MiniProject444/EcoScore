@@ -71,7 +71,7 @@ const Index = () => {
                 className="rounded-xl overflow-hidden shadow-xl"
               >
                 <img
-                  src="https://images.unsplash.com/photo-1564682432803-91a51e1b52db?q=80&w=1000&auto=format&fit=crop"
+                  src="https://previews.123rf.com/images/rufous/rufous1310/rufous131000026/22553170-green-earth-sustainable-development-concept.jpg"
                   alt="Sustainable Earth"
                   className="w-full h-auto rounded-xl"
                 />
