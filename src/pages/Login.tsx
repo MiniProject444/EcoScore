@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
 import { Lock, Mail } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -41,15 +41,32 @@ const Login = () => {
   });
 
   const onSubmit = async (values: LoginValues) => {
+    console.log("Login form submitted with values:", values);
     setIsLoading(true);
     try {
-      const response = await api.auth.login(values.email, values.password);
-      login(response.user, response.token);
-      toast({
-        title: "Success",
-        description: "You have been successfully logged in",
+      // Sign in with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
       });
-      navigate("/dashboard");
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.user) {
+        login({
+          id: data.user.id,
+          name: data.user.user_metadata.name || 'User',
+          email: data.user.email || '',
+        }, data.session?.access_token || null);
+        
+        toast({
+          title: "Success",
+          description: "You have been successfully logged in",
+        });
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Login error:", error);
       toast({

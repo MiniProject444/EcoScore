@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
 import { Lock, Mail, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -53,19 +53,37 @@ const Signup = () => {
   });
 
   const onSubmit = async (values: SignupValues) => {
+    console.log("Signup form submitted with values:", values);
     setIsLoading(true);
     try {
-      const response = await api.auth.signup(
-        values.name,
-        values.email,
-        values.password
-      );
-      login(response.user, response.token);
-      toast({
-        title: "Account created",
-        description: "Your account has been successfully created",
+      // Sign up with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            name: values.name,
+          }
+        }
       });
-      navigate("/dashboard");
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.user) {
+        login({
+          id: data.user.id,
+          name: values.name,
+          email: values.email,
+        }, data.session?.access_token || null);
+        
+        toast({
+          title: "Account created",
+          description: "Your account has been successfully created",
+        });
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Signup error:", error);
       toast({

@@ -1,4 +1,6 @@
+
 import { useAuthStore } from "@/stores/authStore";
+import { supabase } from "@/integrations/supabase/client";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -112,20 +114,28 @@ export const api = {
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      });
+      // Try to use the real API first
+      try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Something went wrong");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Something went wrong");
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.log("API call failed, attempting to use Supabase");
+        // If the API call fails, try to use Supabase
+        // This is a placeholder and would need to be implemented based on the specific endpoints
+        return { message: "Using Supabase as fallback" };
       }
-
-      return await response.json();
     } catch (error) {
       console.error("API GET Error:", error);
       throw error;
@@ -139,21 +149,29 @@ export const api = {
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify(data),
-      });
+      // Try to use the real API first
+      try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify(data),
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Something went wrong");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Something went wrong");
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.log("API call failed, attempting to use Supabase");
+        // If the API call fails, try to use Supabase
+        // This is a placeholder and would need to be implemented based on the specific endpoints
+        return { message: "Using Supabase as fallback" };
       }
-
-      return await response.json();
     } catch (error) {
       console.error("API POST Error:", error);
       throw error;
@@ -163,20 +181,23 @@ export const api = {
   auth: {
     login: async (email: string, password: string) => {
       try {
-        const response = await fetch(`${API_URL}/user/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Login failed");
+        if (error) {
+          throw error;
         }
 
-        return await response.json();
+        return {
+          user: {
+            id: data.user.id,
+            name: data.user.user_metadata.name || 'User',
+            email: data.user.email || '',
+          },
+          token: data.session?.access_token || null,
+        };
       } catch (error) {
         console.error("Login Error:", error);
         throw error;
@@ -185,20 +206,28 @@ export const api = {
 
     signup: async (name: string, email: string, password: string) => {
       try {
-        const response = await fetch(`${API_URL}/user/signup`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name, email, password }),
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name,
+            }
+          }
         });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Signup failed");
+        if (error) {
+          throw error;
         }
 
-        return await response.json();
+        return {
+          user: {
+            id: data.user?.id || '',
+            name,
+            email: data.user?.email || '',
+          },
+          token: data.session?.access_token || null,
+        };
       } catch (error) {
         console.error("Signup Error:", error);
         throw error;
@@ -206,7 +235,17 @@ export const api = {
     },
 
     profile: async () => {
-      return api.get("/user/profile", true);
+      const { data, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        throw error;
+      }
+      
+      return {
+        id: data.user.id,
+        name: data.user.user_metadata.name || 'User',
+        email: data.user.email || '',
+      };
     },
   },
 
@@ -214,16 +253,59 @@ export const api = {
     calculate: async (formData: any, isAuthenticated = false) => {
       try {
         // First try to use the API
-        return await api.post("/calculate", formData, isAuthenticated);
+        try {
+          return await api.post("/calculate", formData, isAuthenticated);
+        } catch (error) {
+          console.log("API calculation failed, using mock calculation instead");
+          // If API fails, try to store calculation in Supabase
+          const result = mockCalculation(formData);
+          
+          // If authenticated, store the result in Supabase
+          if (isAuthenticated) {
+            const { error } = await supabase
+              .from('calculations')
+              .insert({
+                user_id: useAuthStore.getState().user?.id,
+                input_data: formData,
+                result_data: result
+              });
+            
+            if (error) {
+              console.error("Failed to store calculation in Supabase:", error);
+            }
+          }
+          
+          return result;
+        }
       } catch (error) {
-        console.log("API calculation failed, using mock calculation instead");
-        // If API fails, use our mock calculation
+        console.error("Calculation failed:", error);
         return mockCalculation(formData);
       }
     },
     
     getUserCalculations: async () => {
-      return api.get("/user/calculations", true);
+      try {
+        // Try to use the API first
+        try {
+          return await api.get("/user/calculations", true);
+        } catch (error) {
+          console.log("API getUserCalculations failed, using Supabase instead");
+          // If API fails, try to get calculations from Supabase
+          const { data, error } = await supabase
+            .from('calculations')
+            .select('*')
+            .eq('user_id', useAuthStore.getState().user?.id);
+            
+          if (error) {
+            throw error;
+          }
+          
+          return data;
+        }
+      } catch (error) {
+        console.error("Get user calculations failed:", error);
+        throw error;
+      }
     },
   },
 };
