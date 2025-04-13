@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ import {
   Legend,
 } from "recharts";
 import { useAuthStore } from "@/stores/authStore";
-import { Lightbulb, BarChart3, ArrowLeft, Share2, Download } from "lucide-react";
+import { Lightbulb, BarChart3, ArrowLeft, Share2, Download, UserPlus } from "lucide-react";
 
 interface Breakdown {
   transport: { emissions: number; percentage: number };
@@ -55,7 +54,6 @@ const Results = () => {
     );
   }
 
-  // Prepare data for pie chart
   const pieData = [
     { name: "Transport", value: result.breakdown.transport.emissions },
     { name: "Electricity", value: result.breakdown.electricity.emissions },
@@ -63,7 +61,6 @@ const Results = () => {
     { name: "Food", value: result.breakdown.food.emissions },
   ];
 
-  // Prepare data for bar chart
   const barData = [
     {
       name: "Transport",
@@ -87,10 +84,8 @@ const Results = () => {
     },
   ];
 
-  // Colors for the charts
   const COLORS = ["#3B82F6", "#22C55E", "#F59E0B", "#EF4444"];
 
-  // Generate personalized tips based on the highest emission category
   const getHighestEmissionCategory = () => {
     const categories = [
       { name: "transport", value: result.breakdown.transport.emissions },
@@ -265,16 +260,19 @@ const Results = () => {
                 </div>
                 <div className="flex-grow text-center md:text-left">
                   <h2 className="text-xl font-bold text-eco-neutral-700 mb-2">
-                    Want Personalized Tips?
+                    Sign Up for Personalized Tips
                   </h2>
                   <p className="text-eco-neutral-500 mb-4">
-                    Sign up to receive customized recommendations for reducing your carbon footprint
+                    Create an account to receive customized recommendations for reducing your carbon footprint
                     based on your specific lifestyle.
                   </p>
                 </div>
                 <div className="flex-shrink-0">
                   <Button className="eco-gradient" asChild>
-                    <Link to="/signup">Sign Up Now</Link>
+                    <Link to="/signup">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Sign Up Now
+                    </Link>
                   </Button>
                 </div>
               </div>

@@ -16,7 +16,8 @@ import TransportationForm from "@/components/calculator/TransportationForm";
 import ElectricityForm from "@/components/calculator/ElectricityForm";
 import WasteForm from "@/components/calculator/WasteForm";
 import FoodForm from "@/components/calculator/FoodForm";
-import { Car, Plug, Trash2, Utensils, ArrowRight, BarChart } from "lucide-react";
+import { Car, Plug, Trash2, Utensils, ArrowRight, BarChart, UserPlus } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Types for calculator data
 export interface TransportationData {
@@ -106,7 +107,42 @@ const Calculator = () => {
     }
   };
 
+  // Function to check if at least one criterion has valid input
+  const hasValidInput = () => {
+    // Check if transportation has valid input
+    const hasTransportInput = calculatorData.transportData.some(item => 
+      item.distance && item.distance !== "0" && item.distance !== ""
+    );
+    
+    // Check if electricity has valid input
+    const hasElectricityInput = calculatorData.electricityData.some(item => 
+      item.consumption && item.consumption !== "0" && item.consumption !== ""
+    );
+    
+    // Check if waste has valid input
+    const hasWasteInput = calculatorData.wasteData.some(item => 
+      item.garbageBags && item.garbageBags !== "0" && item.garbageBags !== ""
+    );
+    
+    // Check if food has valid input
+    const hasFoodInput = calculatorData.foodData.some(item => 
+      item.moneySpent && item.moneySpent !== "0" && item.moneySpent !== ""
+    );
+    
+    return hasTransportInput || hasElectricityInput || hasWasteInput || hasFoodInput;
+  };
+
   const handleSubmit = async () => {
+    // Check if at least one criterion has input
+    if (!hasValidInput()) {
+      toast({
+        variant: "destructive",
+        title: "No data provided",
+        description: "Please provide input for at least one category before calculating",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       const result = await api.calculator.calculate(calculatorData, isAuthenticated);
@@ -133,6 +169,17 @@ const Calculator = () => {
           <p className="text-eco-neutral-500 mt-2">
             Answer questions about your lifestyle to see your environmental impact
           </p>
+          {!isAuthenticated && (
+            <div className="mt-4 p-4 bg-eco-blue-100/50 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-4">
+              <p className="text-eco-neutral-700">Sign up to receive personalized tips based on your results</p>
+              <Button className="eco-gradient" asChild>
+                <Link to="/signup">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Sign Up
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
 
         <Card className="eco-card">
