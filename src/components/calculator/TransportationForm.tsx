@@ -24,12 +24,15 @@ const TransportationForm = ({ data, updateData }: TransportationFormProps) => {
     
     // Handle special case for transportType which affects available options
     if (field === "transportType") {
+      // Ensure the value is a valid transport type
+      const transportType = value as "car" | "bus" | "train" | "plane";
+      
       newData[index] = {
         ...newData[index],
-        [field]: value,
+        [field]: transportType,
         // Reset dependent fields based on transport type
-        vehicleType: value === "car" ? "medium" : undefined,
-        travelClass: value === "plane" ? "economy" : undefined,
+        vehicleType: transportType === "car" ? "medium" : undefined,
+        travelClass: transportType === "plane" ? "economy" : undefined,
       };
     } else {
       newData[index] = {
