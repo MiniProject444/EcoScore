@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ import FoodForm from "@/components/calculator/FoodForm";
 import { Car, Plug, Trash2, Utensils, ArrowRight, BarChart, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// Types for calculator data
 export interface TransportationData {
   transportType: "car" | "bus" | "train" | "plane";
   vehicleType?: "small" | "medium" | "large";
@@ -55,7 +53,6 @@ const Calculator = () => {
   const [activeTab, setActiveTab] = useState("transportation");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // State for form data
   const [calculatorData, setCalculatorData] = useState<CalculatorData>({
     transportData: [
       {
@@ -107,24 +104,19 @@ const Calculator = () => {
     }
   };
 
-  // Function to check if at least one criterion has valid input
   const hasValidInput = () => {
-    // Check if transportation has valid input
     const hasTransportInput = calculatorData.transportData.some(item => 
       item.distance && item.distance !== "0" && item.distance !== ""
     );
     
-    // Check if electricity has valid input
     const hasElectricityInput = calculatorData.electricityData.some(item => 
       item.consumption && item.consumption !== "0" && item.consumption !== ""
     );
     
-    // Check if waste has valid input
     const hasWasteInput = calculatorData.wasteData.some(item => 
       item.garbageBags && item.garbageBags !== "0" && item.garbageBags !== ""
     );
     
-    // Check if food has valid input
     const hasFoodInput = calculatorData.foodData.some(item => 
       item.moneySpent && item.moneySpent !== "0" && item.moneySpent !== ""
     );
@@ -133,7 +125,6 @@ const Calculator = () => {
   };
 
   const handleSubmit = async () => {
-    // Check if at least one criterion has input
     if (!hasValidInput()) {
       toast({
         variant: "destructive",
@@ -147,14 +138,13 @@ const Calculator = () => {
     try {
       const result = await api.calculator.calculate(calculatorData, isAuthenticated);
       
-      // Navigate to results page with the result data
       navigate('/results', { state: { result, calculatorData } });
     } catch (error) {
       console.error("Calculation error:", error);
       toast({
         variant: "destructive",
         title: "Calculation Failed",
-        description: error instanceof Error ? error.message : "Something went wrong",
+        description: error instanceof Error ? error.message : "Failed to calculate carbon footprint",
       });
     } finally {
       setIsSubmitting(false);
