@@ -55,7 +55,13 @@ const Dashboard = () => {
     const fetchCalculations = async () => {
       try {
         const response = await api.calculator.getUserCalculations();
-        setCalculations(response);
+        // Make sure the response is an array before setting it
+        if (Array.isArray(response)) {
+          setCalculations(response);
+        } else {
+          console.warn("Expected array response from getUserCalculations, got:", response);
+          setCalculations([]);
+        }
       } catch (error) {
         console.error("Error fetching calculations:", error);
         toast({
@@ -63,6 +69,8 @@ const Dashboard = () => {
           title: "Error",
           description: "Failed to load your calculation history",
         });
+        // Ensure calculations is at least an empty array on error
+        setCalculations([]);
       } finally {
         setIsLoading(false);
       }
@@ -127,63 +135,102 @@ const Dashboard = () => {
     },
   ];
 
-  // Use mock data for now
+  // Only use mock data if there are no actual calculations
   const displayCalculations = calculations.length > 0 ? calculations : mockCalculations;
+
+  // Ensure we have valid calculations before proceeding
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto text-center">
+          <p className="text-xl text-eco-neutral-500">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Sort calculations by date (newest first)
   const sortedCalculations = [...displayCalculations].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  // Prepare data for trend chart (oldest to newest)
+  // Safely prepare data for trend chart (oldest to newest)
   const trendData = [...sortedCalculations]
     .reverse()
-    .map((calc) => ({
-      date: new Date(calc.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      total: calc.result.total,
-      transport: calc.result.breakdown.transport.emissions,
-      electricity: calc.result.breakdown.electricity.emissions,
-      waste: calc.result.breakdown.waste.emissions,
-      food: calc.result.breakdown.food.emissions,
-    }));
+    .map((calc) => {
+      // Make sure calc and calc.result exists before accessing properties
+      if (!calc || !calc.result) {
+        console.warn("Invalid calculation data found:", calc);
+        return null;
+      }
+      
+      return {
+        date: new Date(calc.date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        total: calc.result.total || 0,
+        transport: calc.result.breakdown?.transport?.emissions || 0,
+        electricity: calc.result.breakdown?.electricity?.emissions || 0,
+        waste: calc.result.breakdown?.waste?.emissions || 0,
+        food: calc.result.breakdown?.food?.emissions || 0,
+      };
+    })
+    .filter(item => item !== null); // Remove any null items
 
   // Format date
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return "Invalid date";
+    }
   };
 
   // Format time
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      console.error("Error formatting time:", e);
+      return "Invalid time";
+    }
   };
 
-  // Calculate average footprint
+  // Calculate average footprint - safely handling possible undefined values
   const calculateAverage = () => {
     if (displayCalculations.length === 0) return 0;
-    const sum = displayCalculations.reduce(
-      (acc, calc) => acc + calc.result.total,
-      0
-    );
-    return sum / displayCalculations.length;
+    
+    let sum = 0;
+    let validCount = 0;
+    
+    for (const calc of displayCalculations) {
+      if (calc?.result?.total != null) {
+        sum += calc.result.total;
+        validCount++;
+      }
+    }
+    
+    return validCount > 0 ? sum / validCount : 0;
   };
 
-  // Get latest footprint
+  // Get latest footprint - safely handling possible undefined values
   const getLatestFootprint = () => {
     if (displayCalculations.length === 0) return 0;
-    return displayCalculations[0].result.total;
+    return displayCalculations[0]?.result?.total || 0;
   };
+
+  const userName = user?.name || "User";
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -191,7 +238,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10">
           <div>
             <h1 className="text-3xl font-bold text-eco-neutral-700">
-              {user?.name}'s Dashboard
+              {userName}'s Dashboard
             </h1>
             <p className="text-eco-neutral-500 mt-1">
               Track your carbon footprint and progress over time
@@ -259,128 +306,152 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 mb-10">
-          <Card className="eco-card">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-eco-neutral-700 mb-4">
-                Carbon Footprint Trend
-              </h2>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={trendData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis unit=" kg" />
-                    <Tooltip />
-                    <Area
-                      type="monotone"
-                      dataKey="total"
-                      name="Total Emissions"
-                      stackId="1"
-                      stroke="#22C55E"
-                      fill="#22C55E"
-                      fillOpacity={0.5}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="transport"
-                      name="Transport"
-                      stackId="2"
-                      stroke="#3B82F6"
-                      fill="#3B82F6"
-                      fillOpacity={0.5}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="electricity"
-                      name="Electricity"
-                      stackId="2"
-                      stroke="#F59E0B"
-                      fill="#F59E0B"
-                      fillOpacity={0.5}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="waste"
-                      name="Waste"
-                      stackId="2"
-                      stroke="#EF4444"
-                      fill="#EF4444"
-                      fillOpacity={0.5}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="food"
-                      name="Food"
-                      stackId="2"
-                      stroke="#8B5CF6"
-                      fill="#8B5CF6"
-                      fillOpacity={0.5}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {trendData.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 mb-10">
+            <Card className="eco-card">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-bold text-eco-neutral-700 mb-4">
+                  Carbon Footprint Trend
+                </h2>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={trendData}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis unit=" kg" />
+                      <Tooltip />
+                      <Area
+                        type="monotone"
+                        dataKey="total"
+                        name="Total Emissions"
+                        stackId="1"
+                        stroke="#22C55E"
+                        fill="#22C55E"
+                        fillOpacity={0.5}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="transport"
+                        name="Transport"
+                        stackId="2"
+                        stroke="#3B82F6"
+                        fill="#3B82F6"
+                        fillOpacity={0.5}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="electricity"
+                        name="Electricity"
+                        stackId="2"
+                        stroke="#F59E0B"
+                        fill="#F59E0B"
+                        fillOpacity={0.5}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="waste"
+                        name="Waste"
+                        stackId="2"
+                        stroke="#EF4444"
+                        fill="#EF4444"
+                        fillOpacity={0.5}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="food"
+                        name="Food"
+                        stackId="2"
+                        stroke="#8B5CF6"
+                        fill="#8B5CF6"
+                        fillOpacity={0.5}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="text-center mb-10">
+            <Card className="eco-card p-6">
+              <p className="text-eco-neutral-500">No trend data available yet. Complete calculations to see your trends.</p>
+            </Card>
+          </div>
+        )}
 
         <Card className="eco-card">
           <CardContent className="p-6">
             <h2 className="text-xl font-bold text-eco-neutral-700 mb-4">
               Calculation History
             </h2>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[180px]">Date</TableHead>
-                    <TableHead className="w-[100px]">Time</TableHead>
-                    <TableHead className="text-right">Total Emissions (kg CO₂e)</TableHead>
-                    <TableHead className="text-right">Transport</TableHead>
-                    <TableHead className="text-right">Electricity</TableHead>
-                    <TableHead className="text-right">Waste</TableHead>
-                    <TableHead className="text-right">Food</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedCalculations.map((calc) => (
-                    <TableRow key={calc._id}>
-                      <TableCell className="font-medium">
-                        {formatDate(calc.date)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1 text-eco-neutral-500" />
-                          {formatTime(calc.date)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {calc.result.total}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {calc.result.breakdown.transport.emissions} (
-                        {calc.result.breakdown.transport.percentage}%)
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {calc.result.breakdown.electricity.emissions} (
-                        {calc.result.breakdown.electricity.percentage}%)
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {calc.result.breakdown.waste.emissions} (
-                        {calc.result.breakdown.waste.percentage}%)
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {calc.result.breakdown.food.emissions} (
-                        {calc.result.breakdown.food.percentage}%)
-                      </TableCell>
+            {sortedCalculations.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[180px]">Date</TableHead>
+                      <TableHead className="w-[100px]">Time</TableHead>
+                      <TableHead className="text-right">Total Emissions (kg CO₂e)</TableHead>
+                      <TableHead className="text-right">Transport</TableHead>
+                      <TableHead className="text-right">Electricity</TableHead>
+                      <TableHead className="text-right">Waste</TableHead>
+                      <TableHead className="text-right">Food</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedCalculations.map((calc) => {
+                      // Ensure calc and calc.result exists before rendering
+                      if (!calc || !calc.result) {
+                        return null;
+                      }
+                      
+                      return (
+                        <TableRow key={calc._id}>
+                          <TableCell className="font-medium">
+                            {formatDate(calc.date)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Clock className="h-3 w-3 mr-1 text-eco-neutral-500" />
+                              {formatTime(calc.date)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-bold">
+                            {calc.result.total || 0}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {calc.result.breakdown?.transport?.emissions || 0} (
+                            {calc.result.breakdown?.transport?.percentage || 0}%)
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {calc.result.breakdown?.electricity?.emissions || 0} (
+                            {calc.result.breakdown?.electricity?.percentage || 0}%)
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {calc.result.breakdown?.waste?.emissions || 0} (
+                            {calc.result.breakdown?.waste?.percentage || 0}%)
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {calc.result.breakdown?.food?.emissions || 0} (
+                            {calc.result.breakdown?.food?.percentage || 0}%)
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-eco-neutral-500">No calculation history available yet.</p>
+                <Button className="mt-4 eco-gradient" asChild>
+                  <Link to="/calculator">Calculate Your First Footprint</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
