@@ -1,4 +1,3 @@
-
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,9 +10,14 @@ const FREE_USER_TOKEN = "free-user-token";
 const mockCalculation = (formData: any) => {
   const { transportData, electricityData, wasteData, foodData } = formData;
   
-  // Calculate transport emissions - Fix the calculation to properly handle inputs
+  console.log("Beginning calculation with data:", formData);
+  
+  // Calculate transport emissions with fixed calculation
   const transportEmissions = transportData.reduce((total: number, item: any) => {
-    if (!item.distance || isNaN(Number(item.distance)) || Number(item.distance) <= 0) return total;
+    if (!item.distance || isNaN(Number(item.distance)) || Number(item.distance) <= 0) {
+      console.log("Skipping invalid transport item:", item);
+      return total;
+    }
     
     let emissionFactor = 0;
     switch (item.transportType) {
@@ -36,28 +40,43 @@ const mockCalculation = (formData: any) => {
       distance *= 1.60934; // Convert miles to km
     }
     
-    return total + (distance * emissionFactor);
+    const itemEmission = distance * emissionFactor;
+    console.log(`Transport calculation: ${distance} km × ${emissionFactor} = ${itemEmission} kg CO2`);
+    return total + itemEmission;
   }, 0);
   
-  // Calculate electricity emissions - Fix to properly handle inputs
+  // Calculate electricity emissions with fixed calculation
   const electricityEmissions = electricityData.reduce((total: number, item: any) => {
-    if (!item.consumption || isNaN(Number(item.consumption)) || Number(item.consumption) <= 0) return total;
+    if (!item.consumption || isNaN(Number(item.consumption)) || Number(item.consumption) <= 0) {
+      console.log("Skipping invalid electricity item:", item);
+      return total;
+    }
     
     const consumption = Number(item.consumption);
-    return total + (consumption * 0.5); // kWh to kg CO2
+    const itemEmission = consumption * 0.5; // kWh to kg CO2
+    console.log(`Electricity calculation: ${consumption} kWh × 0.5 = ${itemEmission} kg CO2`);
+    return total + itemEmission;
   }, 0);
   
   // Calculate waste emissions
   const wasteEmissions = wasteData.reduce((total: number, item: any) => {
-    if (!item.garbageBags || isNaN(Number(item.garbageBags)) || Number(item.garbageBags) <= 0) return total;
+    if (!item.garbageBags || isNaN(Number(item.garbageBags)) || Number(item.garbageBags) <= 0) {
+      console.log("Skipping invalid waste item:", item);
+      return total;
+    }
     
     const bags = Number(item.garbageBags);
-    return total + (bags * 10); // Bags to kg CO2
+    const itemEmission = bags * 10; // Bags to kg CO2
+    console.log(`Waste calculation: ${bags} bags × 10 = ${itemEmission} kg CO2`);
+    return total + itemEmission;
   }, 0);
   
   // Calculate food emissions
   const foodEmissions = foodData.reduce((total: number, item: any) => {
-    if (!item.moneySpent || isNaN(Number(item.moneySpent)) || Number(item.moneySpent) <= 0) return total;
+    if (!item.moneySpent || isNaN(Number(item.moneySpent)) || Number(item.moneySpent) <= 0) {
+      console.log("Skipping invalid food item:", item);
+      return total;
+    }
     
     const spent = Number(item.moneySpent);
     let factor = 0;
@@ -74,7 +93,9 @@ const mockCalculation = (formData: any) => {
         break;
     }
     
-    return total + (spent * factor);
+    const itemEmission = spent * factor;
+    console.log(`Food calculation: $${spent} × ${factor} = ${itemEmission} kg CO2`);
+    return total + itemEmission;
   }, 0);
   
   // Calculate total and percentages
@@ -83,11 +104,8 @@ const mockCalculation = (formData: any) => {
   // Avoid division by zero
   const getPercentage = (value: number) => total === 0 ? 0 : Math.round((value / total) * 100);
   
-  // Add debug logging to see the values
-  console.log("Calculation inputs:", { transportData, electricityData, wasteData, foodData });
-  console.log("Calculated emissions:", { transportEmissions, electricityEmissions, wasteEmissions, foodEmissions, total });
-  
-  return {
+  // Generate the final result
+  const result = {
     total: Math.round(total * 10) / 10, // Round to 1 decimal place
     breakdown: {
       transport: { 
@@ -108,6 +126,9 @@ const mockCalculation = (formData: any) => {
       }
     }
   };
+  
+  console.log("Final calculation result:", result);
+  return result;
 };
 
 export const api = {
@@ -258,40 +279,41 @@ export const api = {
       try {
         // First try to use the API
         try {
+          console.log("Attempting to use API for calculation with data:", formData);
           return await api.post("/calculate", formData, isAuthenticated);
         } catch (apiError) {
-          console.log("API calculation failed, using mock calculation instead");
+          console.log("API calculation failed, using mock calculation instead:", apiError);
           
-          // Log the input data for debugging
-          console.log("Form data received:", formData);
+          // Fix: Ensure formData has all required properties before calculation
+          const validFormData = {
+            transportData: Array.isArray(formData.transportData) ? formData.transportData : [],
+            electricityData: Array.isArray(formData.electricityData) ? formData.electricityData : [],
+            wasteData: Array.isArray(formData.wasteData) ? formData.wasteData : [],
+            foodData: Array.isArray(formData.foodData) ? formData.foodData : []
+          };
           
-          // If API fails, use the mock calculation
-          const result = mockCalculation(formData);
+          // Use the mock calculation with validated data
+          const result = mockCalculation(validFormData);
           
-          // If authenticated, store the result in local storage
-          // (We'll implement proper Supabase storage later when we create the calculations table)
+          // If authenticated, store the result
           if (isAuthenticated) {
-            try {
-              // Store in localStorage temporarily until we create the calculations table
-              const existingData = localStorage.getItem('calculations') || '[]';
-              const calculations = JSON.parse(existingData);
-              calculations.push({
-                user_id: useAuthStore.getState().user?.id,
-                input_data: formData,
-                result_data: result,
-                created_at: new Date().toISOString()
-              });
-              localStorage.setItem('calculations', JSON.stringify(calculations));
-            } catch (storageError) {
-              console.error("Failed to store calculation in localStorage:", storageError);
-            }
+            // Store in localStorage temporarily until we create the calculations table
+            const existingData = localStorage.getItem('calculations') || '[]';
+            const calculations = JSON.parse(existingData);
+            calculations.push({
+              user_id: useAuthStore.getState().user?.id,
+              input_data: formData,
+              result_data: result,
+              created_at: new Date().toISOString()
+            });
+            localStorage.setItem('calculations', JSON.stringify(calculations));
           }
           
           return result;
         }
       } catch (error) {
         console.error("Calculation failed:", error);
-        return mockCalculation(formData);
+        throw error; // Let the error bubble up instead of returning a default value
       }
     },
     

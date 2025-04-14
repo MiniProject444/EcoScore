@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -106,7 +105,6 @@ const Calculator = () => {
   };
 
   const hasValidInput = () => {
-    // Improved validation to make sure we have at least one valid input
     const hasTransportInput = calculatorData.transportData.some(item => 
       item.distance && !isNaN(Number(item.distance)) && Number(item.distance) > 0
     );
@@ -123,6 +121,7 @@ const Calculator = () => {
       item.moneySpent && !isNaN(Number(item.moneySpent)) && Number(item.moneySpent) > 0
     );
     
+    console.log("Input validation:", { hasTransportInput, hasElectricityInput, hasWasteInput, hasFoodInput });
     return hasTransportInput || hasElectricityInput || hasWasteInput || hasFoodInput;
   };
 
@@ -138,14 +137,16 @@ const Calculator = () => {
     
     setIsSubmitting(true);
     try {
-      // Check and log the data before sending to API
       console.log("Submitting calculator data:", calculatorData);
       
       const result = await api.calculator.calculate(calculatorData, isAuthenticated);
       
       console.log("Calculation result:", result);
       
-      // Ensure result has valid structure before navigating
+      if (!result || (typeof result === 'object' && 'message' in result)) {
+        throw new Error("Could not calculate emissions. Please try again.");
+      }
+      
       const validResult = {
         total: result?.total || 0,
         breakdown: {
@@ -155,6 +156,10 @@ const Calculator = () => {
           food: result?.breakdown?.food || { emissions: 0, percentage: 0 }
         }
       };
+      
+      if (validResult.total === 0 && hasValidInput()) {
+        throw new Error("Calculation returned zero emissions despite valid input. Please try again.");
+      }
       
       navigate('/results', { state: { result: validResult, calculatorData } });
     } catch (error) {
