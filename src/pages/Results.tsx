@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,17 @@ const Results = () => {
 
   useEffect(() => {
     if (location.state?.result) {
-      setResult(location.state.result);
+      // Make sure the result has all required properties
+      const validResult = {
+        total: location.state.result.total || 0,
+        breakdown: {
+          transport: location.state.result.breakdown?.transport || { emissions: 0, percentage: 0 },
+          electricity: location.state.result.breakdown?.electricity || { emissions: 0, percentage: 0 },
+          waste: location.state.result.breakdown?.waste || { emissions: 0, percentage: 0 },
+          food: location.state.result.breakdown?.food || { emissions: 0, percentage: 0 }
+        }
+      };
+      setResult(validResult);
     } else {
       navigate("/calculator");
     }
@@ -54,6 +65,7 @@ const Results = () => {
     );
   }
 
+  // Only create data arrays if result exists and has the expected structure
   const pieData = [
     { name: "Transport", value: result.breakdown.transport.emissions },
     { name: "Electricity", value: result.breakdown.electricity.emissions },

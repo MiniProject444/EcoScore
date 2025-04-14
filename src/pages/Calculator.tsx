@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -138,7 +139,18 @@ const Calculator = () => {
     try {
       const result = await api.calculator.calculate(calculatorData, isAuthenticated);
       
-      navigate('/results', { state: { result, calculatorData } });
+      // Ensure result has valid structure before navigating
+      const validResult = {
+        total: result?.total || 0,
+        breakdown: {
+          transport: result?.breakdown?.transport || { emissions: 0, percentage: 0 },
+          electricity: result?.breakdown?.electricity || { emissions: 0, percentage: 0 },
+          waste: result?.breakdown?.waste || { emissions: 0, percentage: 0 },
+          food: result?.breakdown?.food || { emissions: 0, percentage: 0 }
+        }
+      };
+      
+      navigate('/results', { state: { result: validResult, calculatorData } });
     } catch (error) {
       console.error("Calculation error:", error);
       toast({
