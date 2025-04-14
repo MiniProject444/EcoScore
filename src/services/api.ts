@@ -1,3 +1,4 @@
+
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,7 +11,7 @@ const FREE_USER_TOKEN = "free-user-token";
 const mockCalculation = (formData: any) => {
   const { transportData, electricityData, wasteData, foodData } = formData;
   
-  console.log("Beginning calculation with data:", formData);
+  console.log("Beginning mock calculation with data:", formData);
   
   // Calculate transport emissions with fixed calculation
   const transportEmissions = transportData.reduce((total: number, item: any) => {
@@ -100,6 +101,8 @@ const mockCalculation = (formData: any) => {
   
   // Calculate total and percentages
   const total = transportEmissions + electricityEmissions + wasteEmissions + foodEmissions;
+  
+  console.log("Total emissions calculated:", total);
   
   // Avoid division by zero
   const getPercentage = (value: number) => total === 0 ? 0 : Math.round((value / total) * 100);
@@ -277,23 +280,32 @@ export const api = {
   calculator: {
     calculate: async (formData: any, isAuthenticated = false) => {
       try {
+        console.log("Calculator received form data:", formData);
+        
+        // Fix: Ensure formData has all required properties before calculation
+        const validFormData = {
+          transportData: Array.isArray(formData.transportData) ? formData.transportData : [],
+          electricityData: Array.isArray(formData.electricityData) ? formData.electricityData : [],
+          wasteData: Array.isArray(formData.wasteData) ? formData.wasteData : [],
+          foodData: Array.isArray(formData.foodData) ? formData.foodData : []
+        };
+        
         // First try to use the API
         try {
-          console.log("Attempting to use API for calculation with data:", formData);
-          return await api.post("/calculate", formData, isAuthenticated);
+          console.log("Attempting to use API for calculation");
+          const apiResult = await api.post("/calculate", validFormData, isAuthenticated);
+          console.log("API calculation result:", apiResult);
+          
+          // Check if the API returned a valid result
+          if (apiResult && typeof apiResult === 'object' && 'total' in apiResult) {
+            return apiResult;
+          }
+          throw new Error("API did not return valid calculation results");
         } catch (apiError) {
           console.log("API calculation failed, using mock calculation instead:", apiError);
           
-          // Fix: Ensure formData has all required properties before calculation
-          const validFormData = {
-            transportData: Array.isArray(formData.transportData) ? formData.transportData : [],
-            electricityData: Array.isArray(formData.electricityData) ? formData.electricityData : [],
-            wasteData: Array.isArray(formData.wasteData) ? formData.wasteData : [],
-            foodData: Array.isArray(formData.foodData) ? formData.foodData : []
-          };
-          
-          // Use the mock calculation with validated data
-          const result = mockCalculation(validFormData);
+          // Use the mock calculation
+          const mockResult = mockCalculation(validFormData);
           
           // If authenticated, store the result
           if (isAuthenticated) {
@@ -303,13 +315,13 @@ export const api = {
             calculations.push({
               user_id: useAuthStore.getState().user?.id,
               input_data: formData,
-              result_data: result,
+              result_data: mockResult,
               created_at: new Date().toISOString()
             });
             localStorage.setItem('calculations', JSON.stringify(calculations));
           }
           
-          return result;
+          return mockResult;
         }
       } catch (error) {
         console.error("Calculation failed:", error);

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -143,22 +144,40 @@ const Calculator = () => {
       
       console.log("Calculation result:", result);
       
-      if (!result || (typeof result === 'object' && 'message' in result)) {
+      // Enhanced validation of the result object
+      if (!result || typeof result !== 'object') {
         throw new Error("Could not calculate emissions. Please try again.");
       }
       
+      // If result is in message format (error from API), throw error
+      if ('message' in result) {
+        throw new Error(result.message || "Could not calculate emissions. Please try again.");
+      }
+      
+      // Make sure the result has the required structure
+      if (!('total' in result) || !('breakdown' in result)) {
+        throw new Error("Invalid result format. Please try again.");
+      }
+      
       const validResult = {
-        total: result?.total || 0,
+        total: typeof result.total === 'number' ? result.total : 0,
         breakdown: {
-          transport: result?.breakdown?.transport || { emissions: 0, percentage: 0 },
-          electricity: result?.breakdown?.electricity || { emissions: 0, percentage: 0 },
-          waste: result?.breakdown?.waste || { emissions: 0, percentage: 0 },
-          food: result?.breakdown?.food || { emissions: 0, percentage: 0 }
+          transport: result.breakdown?.transport || { emissions: 0, percentage: 0 },
+          electricity: result.breakdown?.electricity || { emissions: 0, percentage: 0 },
+          waste: result.breakdown?.waste || { emissions: 0, percentage: 0 },
+          food: result.breakdown?.food || { emissions: 0, percentage: 0 }
         }
       };
       
+      console.log("Validated result:", validResult);
+      
       if (validResult.total === 0 && hasValidInput()) {
-        throw new Error("Calculation returned zero emissions despite valid input. Please try again.");
+        console.warn("Calculation returned zero emissions despite valid input");
+        toast({
+          variant: "warning",
+          title: "Low Emissions Detected",
+          description: "Your calculation resulted in very low or zero emissions. This might be accurate or there might be an issue with the calculation.",
+        });
       }
       
       navigate('/results', { state: { result: validResult, calculatorData } });
