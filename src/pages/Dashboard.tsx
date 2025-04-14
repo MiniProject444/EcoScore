@@ -55,9 +55,26 @@ const Dashboard = () => {
     const fetchCalculations = async () => {
       try {
         const response = await api.calculator.getUserCalculations();
-        // Make sure the response is an array before setting it
+        
+        // Process responses from localStorage format to our application format
         if (Array.isArray(response)) {
-          setCalculations(response);
+          // Transform the data into the expected format
+          const formattedCalculations = response.map((calc) => {
+            // Check if the calculation has the expected structure
+            if (!calc || !calc.result_data) {
+              console.warn("Skipping invalid calculation:", calc);
+              return null;
+            }
+            
+            return {
+              _id: calc._id || calc.user_id || Math.random().toString(36).substring(2, 15),
+              date: calc.created_at || new Date().toISOString(),
+              result: calc.result_data
+            };
+          }).filter(calc => calc !== null) as Calculation[];
+          
+          setCalculations(formattedCalculations);
+          console.log("Formatted calculations:", formattedCalculations);
         } else {
           console.warn("Expected array response from getUserCalculations, got:", response);
           setCalculations([]);
@@ -79,7 +96,7 @@ const Dashboard = () => {
     fetchCalculations();
   }, [isAuthenticated, navigate, toast]);
 
-  // Mock data for demonstration since we don't have actual API calls
+  // Use mock data only if there are no actual calculations
   const mockCalculations = [
     {
       _id: "1",
@@ -227,7 +244,14 @@ const Dashboard = () => {
   // Get latest footprint - safely handling possible undefined values
   const getLatestFootprint = () => {
     if (displayCalculations.length === 0) return 0;
-    return displayCalculations[0]?.result?.total || 0;
+    
+    // Find the first valid calculation with a total
+    for (const calc of sortedCalculations) {
+      if (calc?.result?.total != null) {
+        return calc.result.total;
+      }
+    }
+    return 0;
   };
 
   const userName = user?.name || "User";

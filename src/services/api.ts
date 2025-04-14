@@ -318,7 +318,9 @@ export const api = {
             // Store in localStorage temporarily until we create the calculations table
             const existingData = localStorage.getItem('calculations') || '[]';
             const calculations = JSON.parse(existingData);
+            const calculationId = `calc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
             calculations.push({
+              _id: calculationId,
               user_id: useAuthStore.getState().user?.id,
               input_data: formData,
               result_data: mockResult,
@@ -345,11 +347,15 @@ export const api = {
           // If API fails, get calculations from localStorage
           try {
             const existingData = localStorage.getItem('calculations') || '[]';
-            const calculations = JSON.parse(existingData);
+            const allCalculations = JSON.parse(existingData);
             const userId = useAuthStore.getState().user?.id;
             
             // Filter calculations by user ID
-            return calculations.filter((calc: any) => calc.user_id === userId);
+            const userCalculations = allCalculations.filter((calc: any) => calc.user_id === userId);
+            
+            console.log("Retrieved calculations from localStorage:", userCalculations);
+            
+            return userCalculations;
           } catch (storageError) {
             console.error("Failed to get calculations from localStorage:", storageError);
             return [];
