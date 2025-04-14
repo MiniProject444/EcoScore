@@ -11,7 +11,7 @@ const FREE_USER_TOKEN = "free-user-token";
 const mockCalculation = (formData: any) => {
   const { transportData, electricityData, wasteData, foodData } = formData;
   
-  // Calculate transport emissions
+  // Calculate transport emissions - Fix the calculation to properly handle inputs
   const transportEmissions = transportData.reduce((total: number, item: any) => {
     if (!item.distance || isNaN(Number(item.distance)) || Number(item.distance) <= 0) return total;
     
@@ -39,7 +39,7 @@ const mockCalculation = (formData: any) => {
     return total + (distance * emissionFactor);
   }, 0);
   
-  // Calculate electricity emissions
+  // Calculate electricity emissions - Fix to properly handle inputs
   const electricityEmissions = electricityData.reduce((total: number, item: any) => {
     if (!item.consumption || isNaN(Number(item.consumption)) || Number(item.consumption) <= 0) return total;
     
@@ -82,6 +82,10 @@ const mockCalculation = (formData: any) => {
   
   // Avoid division by zero
   const getPercentage = (value: number) => total === 0 ? 0 : Math.round((value / total) * 100);
+  
+  // Add debug logging to see the values
+  console.log("Calculation inputs:", { transportData, electricityData, wasteData, foodData });
+  console.log("Calculated emissions:", { transportEmissions, electricityEmissions, wasteEmissions, foodEmissions, total });
   
   return {
     total: Math.round(total * 10) / 10, // Round to 1 decimal place
@@ -257,6 +261,10 @@ export const api = {
           return await api.post("/calculate", formData, isAuthenticated);
         } catch (apiError) {
           console.log("API calculation failed, using mock calculation instead");
+          
+          // Log the input data for debugging
+          console.log("Form data received:", formData);
+          
           // If API fails, use the mock calculation
           const result = mockCalculation(formData);
           

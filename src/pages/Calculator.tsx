@@ -106,20 +106,21 @@ const Calculator = () => {
   };
 
   const hasValidInput = () => {
+    // Improved validation to make sure we have at least one valid input
     const hasTransportInput = calculatorData.transportData.some(item => 
-      item.distance && item.distance !== "0" && item.distance !== ""
+      item.distance && !isNaN(Number(item.distance)) && Number(item.distance) > 0
     );
     
     const hasElectricityInput = calculatorData.electricityData.some(item => 
-      item.consumption && item.consumption !== "0" && item.consumption !== ""
+      item.consumption && !isNaN(Number(item.consumption)) && Number(item.consumption) > 0
     );
     
     const hasWasteInput = calculatorData.wasteData.some(item => 
-      item.garbageBags && item.garbageBags !== "0" && item.garbageBags !== ""
+      item.garbageBags && !isNaN(Number(item.garbageBags)) && Number(item.garbageBags) > 0
     );
     
     const hasFoodInput = calculatorData.foodData.some(item => 
-      item.moneySpent && item.moneySpent !== "0" && item.moneySpent !== ""
+      item.moneySpent && !isNaN(Number(item.moneySpent)) && Number(item.moneySpent) > 0
     );
     
     return hasTransportInput || hasElectricityInput || hasWasteInput || hasFoodInput;
@@ -137,7 +138,12 @@ const Calculator = () => {
     
     setIsSubmitting(true);
     try {
+      // Check and log the data before sending to API
+      console.log("Submitting calculator data:", calculatorData);
+      
       const result = await api.calculator.calculate(calculatorData, isAuthenticated);
+      
+      console.log("Calculation result:", result);
       
       // Ensure result has valid structure before navigating
       const validResult = {
