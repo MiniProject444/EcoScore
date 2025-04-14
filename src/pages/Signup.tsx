@@ -19,9 +19,14 @@ import { useAuthStore } from "@/stores/authStore";
 import { Lock, Mail, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Enhanced email validation regex to ensure it follows a proper email format
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string()
+    .email("Please enter a valid email address")
+    .regex(emailRegex, "Please enter a valid email address that contains a domain extension (like .com)"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -68,7 +73,14 @@ const Signup = () => {
       });
 
       if (error) {
-        throw error;
+        console.error("Signup error details:", error);
+        
+        // Provide more specific error messages based on error codes
+        if (error.message.includes("email")) {
+          throw new Error("Please enter a valid email address with a proper domain (e.g., example@domain.com)");
+        } else {
+          throw error;
+        }
       }
 
       if (data?.user) {
@@ -94,6 +106,11 @@ const Signup = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper function to check email validity with a stronger validation
+  const validateEmail = (email: string) => {
+    return emailRegex.test(email);
   };
 
   return (
@@ -138,7 +155,17 @@ const Signup = () => {
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-eco-neutral-500" />
                       <Input 
                         placeholder="your.email@example.com" 
-                        className="pl-10" 
+                        className="pl-10"
+                        onBlur={(e) => {
+                          if (e.target.value && !validateEmail(e.target.value)) {
+                            toast({
+                              variant: "destructive",
+                              title: "Invalid Email Format",
+                              description: "Please enter a valid email with a domain extension (e.g., .com)",
+                            });
+                          }
+                          field.onBlur();
+                        }}
                         {...field} 
                       />
                     </div>

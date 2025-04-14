@@ -234,6 +234,12 @@ export const api = {
 
     signup: async (name: string, email: string, password: string) => {
       try {
+        // Validate email format before sending to Supabase
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) {
+          throw new Error("Please enter a valid email address with a proper domain (e.g., example@domain.com)");
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
