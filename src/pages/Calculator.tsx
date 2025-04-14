@@ -129,7 +129,7 @@ const Calculator = () => {
   const handleSubmit = async () => {
     if (!hasValidInput()) {
       toast({
-        variant: "destructive",
+        variant: "destructive", // Changed from "warning" to "destructive"
         title: "No data provided",
         description: "Please provide input for at least one category before calculating",
       });
@@ -174,7 +174,7 @@ const Calculator = () => {
       if (validResult.total === 0 && hasValidInput()) {
         console.warn("Calculation returned zero emissions despite valid input");
         toast({
-          variant: "warning",
+          variant: "default", // Changed from "warning" to "default"
           title: "Low Emissions Detected",
           description: "Your calculation resulted in very low or zero emissions. This might be accurate or there might be an issue with the calculation.",
         });
