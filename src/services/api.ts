@@ -1,4 +1,3 @@
-
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -288,7 +287,6 @@ export const api = {
       try {
         console.log("Calculator received form data:", formData);
         
-        // Fix: Ensure formData has all required properties before calculation
         const validFormData = {
           transportData: Array.isArray(formData.transportData) ? formData.transportData : [],
           electricityData: Array.isArray(formData.electricityData) ? formData.electricityData : [],
@@ -296,13 +294,11 @@ export const api = {
           foodData: Array.isArray(formData.foodData) ? formData.foodData : []
         };
         
-        // First try to use the API
         try {
           console.log("Attempting to use API for calculation");
           const apiResult = await api.post("/calculate", validFormData, isAuthenticated);
           console.log("API calculation result:", apiResult);
           
-          // Check if the API returned a valid result
           if (apiResult && typeof apiResult === 'object' && 'total' in apiResult) {
             return apiResult;
           }
@@ -310,56 +306,51 @@ export const api = {
         } catch (apiError) {
           console.log("API calculation failed, using mock calculation instead:", apiError);
           
-          // Use the mock calculation
           const mockResult = mockCalculation(validFormData);
           
-          // If authenticated, store the result
           if (isAuthenticated) {
-            // Store in localStorage temporarily until we create the calculations table
-            const existingData = localStorage.getItem('calculations') || '[]';
-            const calculations = JSON.parse(existingData);
             const calculationId = `calc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-            calculations.push({
+            const newCalculation = {
               _id: calculationId,
               user_id: useAuthStore.getState().user?.id,
-              input_data: formData,
+              created_at: new Date().toISOString(),
               result_data: mockResult,
-              created_at: new Date().toISOString()
-            });
+              input_data: formData
+            };
+
+            const existingData = localStorage.getItem('calculations') || '[]';
+            const calculations = JSON.parse(existingData);
+            calculations.push(newCalculation);
             localStorage.setItem('calculations', JSON.stringify(calculations));
+            
+            console.log("Stored new calculation:", newCalculation);
           }
           
           return mockResult;
         }
       } catch (error) {
         console.error("Calculation failed:", error);
-        throw error; // Let the error bubble up instead of returning a default value
+        throw error;
       }
     },
     
     getUserCalculations: async () => {
       try {
-        // Try to use the API first
         try {
           return await api.get("/user/calculations", true);
         } catch (apiError) {
           console.log("API getUserCalculations failed, using localStorage instead");
-          // If API fails, get calculations from localStorage
-          try {
-            const existingData = localStorage.getItem('calculations') || '[]';
-            const allCalculations = JSON.parse(existingData);
-            const userId = useAuthStore.getState().user?.id;
-            
-            // Filter calculations by user ID
-            const userCalculations = allCalculations.filter((calc: any) => calc.user_id === userId);
-            
-            console.log("Retrieved calculations from localStorage:", userCalculations);
-            
-            return userCalculations;
-          } catch (storageError) {
-            console.error("Failed to get calculations from localStorage:", storageError);
-            return [];
-          }
+          
+          const existingData = localStorage.getItem('calculations') || '[]';
+          const allCalculations = JSON.parse(existingData);
+          const userId = useAuthStore.getState().user?.id;
+          
+          const userCalculations = allCalculations
+            .filter((calc: any) => calc.user_id === userId && calc.result_data?.total != null)
+            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          
+          console.log("Retrieved user calculations from localStorage:", userCalculations);
+          return userCalculations;
         }
       } catch (error) {
         console.error("Get user calculations failed:", error);

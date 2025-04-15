@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -56,25 +55,25 @@ const Dashboard = () => {
       try {
         const response = await api.calculator.getUserCalculations();
         
-        // Process responses from localStorage format to our application format
         if (Array.isArray(response)) {
-          // Transform the data into the expected format
-          const formattedCalculations = response.map((calc) => {
-            // Check if the calculation has the expected structure
-            if (!calc || !calc.result_data) {
-              console.warn("Skipping invalid calculation:", calc);
-              return null;
-            }
-            
-            return {
-              _id: calc._id || calc.user_id || Math.random().toString(36).substring(2, 15),
-              date: calc.created_at || new Date().toISOString(),
-              result: calc.result_data
-            };
-          }).filter(calc => calc !== null) as Calculation[];
+          const formattedCalculations = response
+            .map((calc) => {
+              if (!calc?.result_data?.total) {
+                console.warn("Skipping invalid calculation:", calc);
+                return null;
+              }
+              
+              return {
+                _id: calc._id,
+                date: calc.created_at,
+                result: calc.result_data
+              };
+            })
+            .filter((calc): calc is Calculation => calc !== null)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           
+          console.log("Formatted user calculations:", formattedCalculations);
           setCalculations(formattedCalculations);
-          console.log("Formatted calculations:", formattedCalculations);
         } else {
           console.warn("Expected array response from getUserCalculations, got:", response);
           setCalculations([]);
@@ -86,7 +85,6 @@ const Dashboard = () => {
           title: "Error",
           description: "Failed to load your calculation history",
         });
-        // Ensure calculations is at least an empty array on error
         setCalculations([]);
       } finally {
         setIsLoading(false);
@@ -96,88 +94,14 @@ const Dashboard = () => {
     fetchCalculations();
   }, [isAuthenticated, navigate, toast]);
 
-  // Use mock data only if there are no actual calculations
-  const mockCalculations = [
-    {
-      _id: "1",
-      date: "2025-04-01T12:00:00.000Z",
-      result: {
-        total: 520,
-        breakdown: {
-          transport: { emissions: 210, percentage: 40 },
-          electricity: { emissions: 150, percentage: 29 },
-          waste: { emissions: 80, percentage: 15 },
-          food: { emissions: 80, percentage: 16 },
-        },
-      },
-    },
-    {
-      _id: "2",
-      date: "2025-03-15T12:00:00.000Z",
-      result: {
-        total: 600,
-        breakdown: {
-          transport: { emissions: 250, percentage: 42 },
-          electricity: { emissions: 180, percentage: 30 },
-          waste: { emissions: 90, percentage: 15 },
-          food: { emissions: 80, percentage: 13 },
-        },
-      },
-    },
-    {
-      _id: "3",
-      date: "2025-03-01T12:00:00.000Z",
-      result: {
-        total: 650,
-        breakdown: {
-          transport: { emissions: 280, percentage: 43 },
-          electricity: { emissions: 200, percentage: 31 },
-          waste: { emissions: 90, percentage: 14 },
-          food: { emissions: 80, percentage: 12 },
-        },
-      },
-    },
-    {
-      _id: "4",
-      date: "2025-02-15T12:00:00.000Z",
-      result: {
-        total: 680,
-        breakdown: {
-          transport: { emissions: 300, percentage: 44 },
-          electricity: { emissions: 210, percentage: 31 },
-          waste: { emissions: 95, percentage: 14 },
-          food: { emissions: 75, percentage: 11 },
-        },
-      },
-    },
-  ];
-
-  // Only use mock data if there are no actual calculations
-  const displayCalculations = calculations.length > 0 ? calculations : mockCalculations;
-
-  // Ensure we have valid calculations before proceeding
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-xl text-eco-neutral-500">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Sort calculations by date (newest first)
-  const sortedCalculations = [...displayCalculations].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sortedCalculations = calculations;
 
   // Safely prepare data for trend chart (oldest to newest)
-  const trendData = [...sortedCalculations]
+  const trendData = [...calculations]
     .reverse()
     .map((calc) => {
-      // Make sure calc and calc.result exists before accessing properties
-      if (!calc || !calc.result) {
-        console.warn("Invalid calculation data found:", calc);
+      if (!calc?.result) {
         return null;
       }
       
@@ -193,7 +117,23 @@ const Dashboard = () => {
         food: calc.result.breakdown?.food?.emissions || 0,
       };
     })
-    .filter(item => item !== null); // Remove any null items
+    .filter(item => item !== null);
+
+  // Calculate average footprint
+  const calculateAverage = () => {
+    if (calculations.length === 0) return 0;
+    
+    const total = calculations.reduce((sum, calc) => {
+      return sum + (calc.result?.total || 0);
+    }, 0);
+    
+    return Number((total / calculations.length).toFixed(1));
+  };
+
+  // Get latest footprint
+  const getLatestFootprint = () => {
+    return calculations[0]?.result?.total || 0;
+  };
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -222,36 +162,6 @@ const Dashboard = () => {
       console.error("Error formatting time:", e);
       return "Invalid time";
     }
-  };
-
-  // Calculate average footprint - safely handling possible undefined values
-  const calculateAverage = () => {
-    if (displayCalculations.length === 0) return 0;
-    
-    let sum = 0;
-    let validCount = 0;
-    
-    for (const calc of displayCalculations) {
-      if (calc?.result?.total != null) {
-        sum += calc.result.total;
-        validCount++;
-      }
-    }
-    
-    return validCount > 0 ? sum / validCount : 0;
-  };
-
-  // Get latest footprint - safely handling possible undefined values
-  const getLatestFootprint = () => {
-    if (displayCalculations.length === 0) return 0;
-    
-    // Find the first valid calculation with a total
-    for (const calc of sortedCalculations) {
-      if (calc?.result?.total != null) {
-        return calc.result.total;
-      }
-    }
-    return 0;
   };
 
   const userName = user?.name || "User";
@@ -300,7 +210,7 @@ const Dashboard = () => {
                 <div>
                   <p className="text-eco-neutral-500 text-sm">Average Footprint</p>
                   <h3 className="text-3xl font-bold text-eco-neutral-700">
-                    {calculateAverage().toFixed(1)} kg
+                    {calculateAverage()} kg
                   </h3>
                   <p className="text-xs text-eco-neutral-500 mt-1">CO₂e per month</p>
                 </div>
@@ -317,10 +227,10 @@ const Dashboard = () => {
                 <div>
                   <p className="text-eco-neutral-500 text-sm">Total Calculations</p>
                   <h3 className="text-3xl font-bold text-eco-neutral-700">
-                    {displayCalculations.length}
+                    {calculations.length}
                   </h3>
                   <p className="text-xs text-eco-neutral-500 mt-1">
-                    {displayCalculations.length === 1
+                    {calculations.length === 1
                       ? "calculation"
                       : "calculations"}
                   </p>
@@ -426,45 +336,38 @@ const Dashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedCalculations.map((calc) => {
-                      // Ensure calc and calc.result exists before rendering
-                      if (!calc || !calc.result) {
-                        return null;
-                      }
-                      
-                      return (
-                        <TableRow key={calc._id}>
-                          <TableCell className="font-medium">
-                            {formatDate(calc.date)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Clock className="h-3 w-3 mr-1 text-eco-neutral-500" />
-                              {formatTime(calc.date)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-bold">
-                            {calc.result.total || 0}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {calc.result.breakdown?.transport?.emissions || 0} (
-                            {calc.result.breakdown?.transport?.percentage || 0}%)
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {calc.result.breakdown?.electricity?.emissions || 0} (
-                            {calc.result.breakdown?.electricity?.percentage || 0}%)
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {calc.result.breakdown?.waste?.emissions || 0} (
-                            {calc.result.breakdown?.waste?.percentage || 0}%)
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {calc.result.breakdown?.food?.emissions || 0} (
-                            {calc.result.breakdown?.food?.percentage || 0}%)
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {sortedCalculations.map((calc) => (
+                      <TableRow key={calc._id}>
+                        <TableCell className="font-medium">
+                          {formatDate(calc.date)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1 text-eco-neutral-500" />
+                            {formatTime(calc.date)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {calc.result.total}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {calc.result.breakdown?.transport?.emissions} (
+                          {calc.result.breakdown?.transport?.percentage}%)
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {calc.result.breakdown?.electricity?.emissions} (
+                          {calc.result.breakdown?.electricity?.percentage}%)
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {calc.result.breakdown?.waste?.emissions} (
+                          {calc.result.breakdown?.waste?.percentage}%)
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {calc.result.breakdown?.food?.emissions} (
+                          {calc.result.breakdown?.food?.percentage}%)
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
