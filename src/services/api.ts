@@ -309,6 +309,7 @@ export const api = {
           
           const mockResult = mockCalculation(validFormData);
           
+          // Only save the calculation if the user is authenticated
           if (isAuthenticated) {
             const calculationId = `calc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
             const userId = useAuthStore.getState().user?.id;
@@ -329,14 +330,15 @@ export const api = {
             };
 
             // Get existing calculations from localStorage
-            const existingData = localStorage.getItem('calculations') || '[]';
             let calculations = [];
-            
             try {
-              calculations = JSON.parse(existingData);
-              if (!Array.isArray(calculations)) {
-                console.error("Invalid calculations format in localStorage");
-                calculations = [];
+              const existingData = localStorage.getItem('calculations');
+              if (existingData) {
+                calculations = JSON.parse(existingData);
+                if (!Array.isArray(calculations)) {
+                  console.error("Invalid calculations format in localStorage");
+                  calculations = [];
+                }
               }
             } catch (e) {
               console.error("Error parsing calculations from localStorage:", e);
@@ -370,19 +372,21 @@ export const api = {
         console.log("Fetching calculations for user ID:", userId);
         
         try {
+          // Try to get from API first
           return await api.get("/user/calculations", true);
         } catch (apiError) {
           console.log("API getUserCalculations failed, using localStorage instead");
           
           // Get all calculations from localStorage
-          const existingData = localStorage.getItem('calculations') || '[]';
           let allCalculations = [];
-          
           try {
-            allCalculations = JSON.parse(existingData);
-            if (!Array.isArray(allCalculations)) {
-              console.error("Invalid calculations format in localStorage");
-              return [];
+            const existingData = localStorage.getItem('calculations');
+            if (existingData) {
+              allCalculations = JSON.parse(existingData);
+              if (!Array.isArray(allCalculations)) {
+                console.error("Invalid calculations format in localStorage");
+                return [];
+              }
             }
           } catch (e) {
             console.error("Error parsing calculations from localStorage:", e);
