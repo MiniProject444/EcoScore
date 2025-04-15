@@ -323,15 +323,29 @@ export const api = {
               user_id: userId,
               created_at: new Date().toISOString(),
               result_data: mockResult,
-              input_data: formData
+              input_data: validFormData
             };
 
+            // Get existing calculations from localStorage
             const existingData = localStorage.getItem('calculations') || '[]';
-            const calculations = JSON.parse(existingData);
+            let calculations = [];
+            
+            try {
+              calculations = JSON.parse(existingData);
+              if (!Array.isArray(calculations)) {
+                console.error("Invalid calculations format in localStorage");
+                calculations = [];
+              }
+            } catch (e) {
+              console.error("Error parsing calculations from localStorage:", e);
+              calculations = [];
+            }
+            
+            // Add the new calculation and save back to localStorage
             calculations.push(newCalculation);
             localStorage.setItem('calculations', JSON.stringify(calculations));
             
-            console.log("Stored new calculation:", newCalculation);
+            console.log("Stored new calculation for user:", userId, newCalculation);
           }
           
           return mockResult;
@@ -358,15 +372,30 @@ export const api = {
         } catch (apiError) {
           console.log("API getUserCalculations failed, using localStorage instead");
           
+          // Get all calculations from localStorage
           const existingData = localStorage.getItem('calculations') || '[]';
-          const allCalculations = JSON.parse(existingData);
+          let allCalculations = [];
+          
+          try {
+            allCalculations = JSON.parse(existingData);
+            if (!Array.isArray(allCalculations)) {
+              console.error("Invalid calculations format in localStorage");
+              return [];
+            }
+          } catch (e) {
+            console.error("Error parsing calculations from localStorage:", e);
+            return [];
+          }
           
           console.log("All calculations in localStorage:", allCalculations);
           
+          // Filter calculations for the current user
           const userCalculations = allCalculations
             .filter((calc: any) => {
+              if (!calc) return false;
+              
               const isUserCalc = calc.user_id === userId;
-              const hasValidData = calc.result_data?.total != null;
+              const hasValidData = calc.result_data && calc.result_data.total != null;
               
               if (!isUserCalc) {
                 console.log("Skipping calculation for different user:", calc.user_id);

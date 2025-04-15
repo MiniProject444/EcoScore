@@ -63,7 +63,7 @@ const Dashboard = () => {
         if (Array.isArray(response)) {
           const formattedCalculations = response
             .map((calc) => {
-              if (!calc?.result_data?.total) {
+              if (!calc || !calc.result_data || !calc.result_data.total) {
                 console.warn("Skipping invalid calculation:", calc);
                 return null;
               }
@@ -101,9 +101,6 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, navigate, toast, user]);
 
-  // Sort calculations by date (newest first)
-  const sortedCalculations = calculations;
-
   // Safely prepare data for trend chart (oldest to newest)
   const trendData = [...calculations]
     .reverse()
@@ -139,7 +136,7 @@ const Dashboard = () => {
 
   // Get latest footprint
   const getLatestFootprint = () => {
-    return calculations[0]?.result?.total || 0;
+    return calculations.length > 0 ? calculations[0]?.result?.total || 0 : 0;
   };
 
   // Format date
@@ -323,6 +320,9 @@ const Dashboard = () => {
           <div className="text-center mb-10">
             <Card className="eco-card p-6">
               <p className="text-eco-neutral-500">No trend data available yet. Complete calculations to see your trends.</p>
+              <Button className="mt-4 eco-gradient" asChild>
+                <Link to="/calculator">Calculate Your First Footprint</Link>
+              </Button>
             </Card>
           </div>
         )}
@@ -334,7 +334,7 @@ const Dashboard = () => {
             </h2>
             {isLoading ? (
               <p className="text-center py-6 text-eco-neutral-500">Loading your calculation history...</p>
-            ) : sortedCalculations.length > 0 ? (
+            ) : calculations.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -349,7 +349,7 @@ const Dashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedCalculations.map((calc) => (
+                    {calculations.map((calc) => (
                       <TableRow key={calc._id}>
                         <TableCell className="font-medium">
                           {formatDate(calc.date)}
