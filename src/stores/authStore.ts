@@ -22,8 +22,16 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       user: null,
       token: null,
-      login: (user, token) => set({ isAuthenticated: true, user, token }),
-      logout: () => set({ isAuthenticated: false, user: null, token: null }),
+      login: (user, token) => {
+        console.log("Logging in user:", user);
+        set({ isAuthenticated: true, user, token });
+      },
+      logout: () => {
+        console.log("Logging out user");
+        // Clear calculations from localStorage when logging out
+        localStorage.removeItem('calculations');
+        set({ isAuthenticated: false, user: null, token: null });
+      },
     }),
     {
       name: 'eco-score-auth',

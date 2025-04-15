@@ -318,6 +318,8 @@ export const api = {
               return mockResult;
             }
             
+            console.log("Storing calculation for user ID:", userId);
+            
             const newCalculation = {
               _id: calculationId,
               user_id: userId,
@@ -388,6 +390,7 @@ export const api = {
           }
           
           console.log("All calculations in localStorage:", allCalculations);
+          console.log("Current user ID:", userId);
           
           // Filter calculations for the current user
           const userCalculations = allCalculations
@@ -398,7 +401,7 @@ export const api = {
               const hasValidData = calc.result_data && calc.result_data.total != null;
               
               if (!isUserCalc) {
-                console.log("Skipping calculation for different user:", calc.user_id);
+                console.log("Skipping calculation for different user. Expected:", userId, "Got:", calc.user_id);
               }
               if (!hasValidData) {
                 console.log("Skipping calculation with invalid data:", calc);

@@ -79,6 +79,14 @@ const Dashboard = () => {
           
           console.log("Formatted user calculations:", formattedCalculations);
           setCalculations(formattedCalculations);
+        } else if (response && typeof response === 'object' && 'message' in response) {
+          console.warn("API returned a message instead of calculations:", response);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load your calculation history from API",
+          });
+          setCalculations([]);
         } else {
           console.warn("Expected array response from getUserCalculations, got:", response);
           setCalculations([]);
