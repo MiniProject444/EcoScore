@@ -1,3 +1,4 @@
+
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -310,9 +311,16 @@ export const api = {
           
           if (isAuthenticated) {
             const calculationId = `calc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            const userId = useAuthStore.getState().user?.id;
+            
+            if (!userId) {
+              console.error("No user ID found for calculation storage");
+              return mockResult;
+            }
+            
             const newCalculation = {
               _id: calculationId,
-              user_id: useAuthStore.getState().user?.id,
+              user_id: userId,
               created_at: new Date().toISOString(),
               result_data: mockResult,
               input_data: formData
@@ -336,6 +344,15 @@ export const api = {
     
     getUserCalculations: async () => {
       try {
+        // Get current user's ID
+        const userId = useAuthStore.getState().user?.id;
+        if (!userId) {
+          console.error("No user ID found when fetching calculations");
+          return [];
+        }
+        
+        console.log("Fetching calculations for user ID:", userId);
+        
         try {
           return await api.get("/user/calculations", true);
         } catch (apiError) {
@@ -343,10 +360,23 @@ export const api = {
           
           const existingData = localStorage.getItem('calculations') || '[]';
           const allCalculations = JSON.parse(existingData);
-          const userId = useAuthStore.getState().user?.id;
+          
+          console.log("All calculations in localStorage:", allCalculations);
           
           const userCalculations = allCalculations
-            .filter((calc: any) => calc.user_id === userId && calc.result_data?.total != null)
+            .filter((calc: any) => {
+              const isUserCalc = calc.user_id === userId;
+              const hasValidData = calc.result_data?.total != null;
+              
+              if (!isUserCalc) {
+                console.log("Skipping calculation for different user:", calc.user_id);
+              }
+              if (!hasValidData) {
+                console.log("Skipping calculation with invalid data:", calc);
+              }
+              
+              return isUserCalc && hasValidData;
+            })
             .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
           
           console.log("Retrieved user calculations from localStorage:", userCalculations);

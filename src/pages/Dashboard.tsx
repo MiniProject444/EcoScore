@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,11 @@ const Dashboard = () => {
 
     const fetchCalculations = async () => {
       try {
+        setIsLoading(true);
+        console.log("Fetching calculations for user:", user?.id, user?.name);
         const response = await api.calculator.getUserCalculations();
+        
+        console.log("Raw response from getUserCalculations:", response);
         
         if (Array.isArray(response)) {
           const formattedCalculations = response
@@ -91,8 +96,10 @@ const Dashboard = () => {
       }
     };
 
-    fetchCalculations();
-  }, [isAuthenticated, navigate, toast]);
+    if (isAuthenticated && user?.id) {
+      fetchCalculations();
+    }
+  }, [isAuthenticated, navigate, toast, user]);
 
   // Sort calculations by date (newest first)
   const sortedCalculations = calculations;
@@ -240,7 +247,11 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {trendData.length > 0 ? (
+        {isLoading ? (
+          <Card className="eco-card p-6 mb-10">
+            <p className="text-center text-eco-neutral-500">Loading your calculation data...</p>
+          </Card>
+        ) : trendData.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 mb-10">
             <Card className="eco-card">
               <CardContent className="p-6">
@@ -321,7 +332,9 @@ const Dashboard = () => {
             <h2 className="text-xl font-bold text-eco-neutral-700 mb-4">
               Calculation History
             </h2>
-            {sortedCalculations.length > 0 ? (
+            {isLoading ? (
+              <p className="text-center py-6 text-eco-neutral-500">Loading your calculation history...</p>
+            ) : sortedCalculations.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
