@@ -97,20 +97,25 @@ const Results = () => {
 
   const COLORS = ["#3B82F6", "#22C55E", "#F59E0B", "#EF4444"];
 
-  const getHighestEmissionCategory = () => {
+  const getTopEmissionCategories = () => {
+    if (!result) return [];
+    
     const categories = [
       { name: "transport", value: result.breakdown.transport.emissions },
       { name: "electricity", value: result.breakdown.electricity.emissions },
       { name: "waste", value: result.breakdown.waste.emissions },
       { name: "food", value: result.breakdown.food.emissions },
     ];
-    return categories.reduce((max, category) => 
-      category.value > max.value ? category : max, categories[0]
-    );
+    
+    // Sort categories by emission value in descending order
+    return categories
+      .filter(cat => cat.value > 0) // Only consider categories with emissions
+      .sort((a, b) => b.value - a.value);
   };
 
   const getPersonalizedTips = () => {
-    const highestCategory = getHighestEmissionCategory();
+    const topCategories = getTopEmissionCategories();
+    if (topCategories.length === 0) return [];
     
     const tips = {
       transport: [
@@ -123,9 +128,9 @@ const Results = () => {
       electricity: [
         "Switch to energy-efficient LED light bulbs",
         "Unplug electronics when not in use to avoid phantom power usage",
-        "Use smart power strips to automatically cut power to devices when not in use",
-        "Adjust your thermostat to use less heating or cooling when you're away",
-        "Consider switching to renewable energy sources if available in your area",
+        "Use smart power strips to automatically cut power to devices",
+        "Adjust your thermostat to use less heating or cooling when away",
+        "Consider switching to renewable energy sources if available",
       ],
       waste: [
         "Implement a comprehensive recycling program at home",
@@ -142,8 +147,30 @@ const Results = () => {
         "Choose products with sustainable packaging",
       ],
     };
+
+    // Get tips from top categories (up to 3)
+    const selectedTips: string[] = [];
+    const categoriesUsed = new Set<string>();
     
-    return tips[highestCategory.name as keyof typeof tips];
+    // Take 2 tips from the highest category and 1 tip from each of the next categories
+    topCategories.forEach((category, index) => {
+      if (categoriesUsed.size >= 3) return; // Limit to 3 categories
+      
+      const categoryTips = tips[category.name as keyof typeof tips];
+      if (!categoryTips) return;
+      
+      if (index === 0) {
+        // Take 2 tips from the highest emission category
+        selectedTips.push(...categoryTips.slice(0, 2));
+      } else {
+        // Take 1 tip from other categories
+        selectedTips.push(categoryTips[0]);
+      }
+      
+      categoriesUsed.add(category.name);
+    });
+
+    return selectedTips;
   };
 
   const handleDownload = async () => {
@@ -266,7 +293,7 @@ const Results = () => {
                     Personalized Tips to Reduce Your Footprint
                   </h2>
                   <p className="text-eco-neutral-500 mb-4">
-                    Based on your results, here are some ways you can reduce your carbon footprint:
+                    Based on your highest emission categories, here are some ways you can reduce your carbon footprint:
                   </p>
                   <ul className="space-y-2 list-disc list-inside">
                     {getPersonalizedTips().map((tip, index) => (
