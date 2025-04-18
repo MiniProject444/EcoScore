@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,8 @@ import {
 } from "recharts";
 import { useAuthStore } from "@/stores/authStore";
 import { Lightbulb, BarChart3, ArrowLeft, Share2, Download, UserPlus } from "lucide-react";
+import { downloadCalculationResults } from "@/utils/downloadUtils";
+import { toast } from "@/components/ui/use-toast";
 
 interface Breakdown {
   transport: { emissions: number; percentage: number };
@@ -39,7 +40,6 @@ const Results = () => {
 
   useEffect(() => {
     if (location.state?.result) {
-      // Make sure the result has all required properties
       const validResult = {
         total: location.state.result.total || 0,
         breakdown: {
@@ -65,7 +65,6 @@ const Results = () => {
     );
   }
 
-  // Only create data arrays if result exists and has the expected structure
   const pieData = [
     { name: "Transport", value: result.breakdown.transport.emissions },
     { name: "Electricity", value: result.breakdown.electricity.emissions },
@@ -145,6 +144,23 @@ const Results = () => {
     };
     
     return tips[highestCategory.name as keyof typeof tips];
+  };
+
+  const handleDownload = async () => {
+    try {
+      await downloadCalculationResults();
+      toast({
+        title: "Success",
+        description: "Your results have been downloaded successfully!",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download results. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -304,7 +320,7 @@ const Results = () => {
               <Share2 className="mr-2 h-4 w-4" />
               Share Results
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleDownload}>
               <Download className="mr-2 h-4 w-4" />
               Download Report
             </Button>
