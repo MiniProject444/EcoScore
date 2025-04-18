@@ -165,7 +165,7 @@ const Results = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-5xl mx-auto">
+      <div id="results-container" className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-eco-neutral-700">Your Carbon Footprint Results</h1>
           <p className="text-xl text-eco-neutral-500 mt-2">

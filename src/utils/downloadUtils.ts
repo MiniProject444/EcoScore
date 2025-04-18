@@ -9,8 +9,11 @@ export const downloadCalculationResults = async () => {
       throw new Error('Results container not found');
     }
 
+    // Cast the Element to HTMLElement for compatibility with html-to-image
+    const htmlElement = resultsContainer as HTMLElement;
+
     // Convert the container to an image
-    const dataUrl = await toPng(resultsContainer);
+    const dataUrl = await toPng(htmlElement);
 
     // Create a link element and trigger download
     const link = document.createElement('a');
