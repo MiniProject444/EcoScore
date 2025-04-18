@@ -4,6 +4,7 @@ import { Card, CardContent } from "./ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Instagram, Twitter, Share2, MessageSquare } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
 
 interface ShareCardProps {
   username: string;
@@ -11,6 +12,12 @@ interface ShareCardProps {
 }
 
 const ShareCard = ({ username, totalEmissions }: ShareCardProps) => {
+  const { isAuthenticated } = useAuthStore();
+  
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const shareText = `I just calculated my carbon footprint with EcoScore! My monthly impact is ${totalEmissions} kg CO₂e. Join me in tracking and reducing your environmental impact! Visit: ecoscore.com #EcoScore #ClimateAction`;
 
   const handleShare = (platform: 'twitter' | 'instagram' | 'whatsapp') => {
