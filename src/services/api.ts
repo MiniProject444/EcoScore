@@ -333,12 +333,10 @@ export const api = {
             let calculations = [];
             try {
               const existingData = localStorage.getItem('calculations');
-              if (existingData) {
-                calculations = JSON.parse(existingData);
-                if (!Array.isArray(calculations)) {
-                  console.error("Invalid calculations format in localStorage");
-                  calculations = [];
-                }
+              calculations = existingData ? JSON.parse(existingData) : [];
+              if (!Array.isArray(calculations)) {
+                console.error("Invalid calculations format in localStorage");
+                calculations = [];
               }
             } catch (e) {
               console.error("Error parsing calculations from localStorage:", e);
@@ -373,20 +371,24 @@ export const api = {
         
         try {
           // Try to get from API first
-          return await api.get("/user/calculations", true);
+          const apiResponse = await api.get("/user/calculations", true);
+          // If we get here, check if the response is an array or contains a message
+          if (Array.isArray(apiResponse)) {
+            return apiResponse;
+          }
+          // If it's not an array, throw an error to fall back to localStorage
+          throw new Error("API did not return an array of calculations");
         } catch (apiError) {
-          console.log("API getUserCalculations failed, using localStorage instead");
+          console.log("API getUserCalculations failed, using localStorage instead:", apiError);
           
           // Get all calculations from localStorage
           let allCalculations = [];
           try {
             const existingData = localStorage.getItem('calculations');
-            if (existingData) {
-              allCalculations = JSON.parse(existingData);
-              if (!Array.isArray(allCalculations)) {
-                console.error("Invalid calculations format in localStorage");
-                return [];
-              }
+            allCalculations = existingData ? JSON.parse(existingData) : [];
+            if (!Array.isArray(allCalculations)) {
+              console.error("Invalid calculations format in localStorage");
+              return [];
             }
           } catch (e) {
             console.error("Error parsing calculations from localStorage:", e);

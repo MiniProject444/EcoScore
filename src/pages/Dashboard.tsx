@@ -63,7 +63,7 @@ const Dashboard = () => {
         if (Array.isArray(response)) {
           const formattedCalculations = response
             .map((calc) => {
-              if (!calc || !calc.result_data || !calc.result_data.total) {
+              if (!calc || !calc.result_data || typeof calc.result_data.total !== 'number') {
                 console.warn("Skipping invalid calculation:", calc);
                 return null;
               }
@@ -184,7 +184,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10">
           <div>
             <h1 className="text-3xl font-bold text-eco-neutral-700">
-              {userName}'s Dashboard
+              {user?.name || "User"}'s Dashboard
             </h1>
             <p className="text-eco-neutral-500 mt-1">
               Track your carbon footprint and progress over time
@@ -256,7 +256,7 @@ const Dashboard = () => {
           <Card className="eco-card p-6 mb-10">
             <p className="text-center text-eco-neutral-500">Loading your calculation data...</p>
           </Card>
-        ) : trendData.length > 0 ? (
+        ) : calculations.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 mb-10">
             <Card className="eco-card">
               <CardContent className="p-6">

@@ -28,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         console.log("Logging out user");
-        // Clear calculations from localStorage when logging out
+        // Clear calculations from localStorage when logging out for a clean slate
         localStorage.removeItem('calculations');
         set({ isAuthenticated: false, user: null, token: null });
       },
