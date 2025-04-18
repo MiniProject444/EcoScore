@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from "./ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Instagram, Twitter, Share2, WhatsApp } from "lucide-react";
+import { Instagram, Twitter, Share2, MessageSquare } from "lucide-react";
 
 interface ShareCardProps {
   username: string;
@@ -62,7 +62,7 @@ const ShareCard = ({ username, totalEmissions }: ShareCardProps) => {
               <Instagram className="h-5 w-5" />
             </Button>
             <Button variant="outline" size="lg" onClick={() => handleShare('whatsapp')}>
-              <WhatsApp className="h-5 w-5" />
+              <MessageSquare className="h-5 w-5" />
             </Button>
           </div>
         </div>
