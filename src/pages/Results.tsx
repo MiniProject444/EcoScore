@@ -19,6 +19,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { Lightbulb, BarChart3, ArrowLeft, Share2, Download, UserPlus } from "lucide-react";
 import { downloadCalculationResults } from "@/utils/downloadUtils";
 import { toast } from "@/components/ui/use-toast";
+import ShareCard from "@/components/ShareCard";
 
 interface Breakdown {
   transport: { emissions: number; percentage: number };
@@ -107,9 +108,8 @@ const Results = () => {
       { name: "food", value: result.breakdown.food.emissions },
     ];
     
-    // Sort categories by emission value in descending order
     return categories
-      .filter(cat => cat.value > 0) // Only consider categories with emissions
+      .filter(cat => cat.value > 0)
       .sort((a, b) => b.value - a.value);
   };
 
@@ -148,22 +148,18 @@ const Results = () => {
       ],
     };
 
-    // Get tips from top categories (up to 3)
     const selectedTips: string[] = [];
     const categoriesUsed = new Set<string>();
     
-    // Take 2 tips from the highest category and 1 tip from each of the next categories
     topCategories.forEach((category, index) => {
-      if (categoriesUsed.size >= 3) return; // Limit to 3 categories
+      if (categoriesUsed.size >= 3) return;
       
       const categoryTips = tips[category.name as keyof typeof tips];
       if (!categoryTips) return;
       
       if (index === 0) {
-        // Take 2 tips from the highest emission category
         selectedTips.push(...categoryTips.slice(0, 2));
       } else {
-        // Take 1 tip from other categories
         selectedTips.push(categoryTips[0]);
       }
       
@@ -343,10 +339,10 @@ const Results = () => {
             </Link>
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Share2 className="mr-2 h-4 w-4" />
-              Share Results
-            </Button>
+            <ShareCard 
+              username={isAuthenticated ? "User" : "Guest"} 
+              totalEmissions={result.total} 
+            />
             <Button variant="outline" onClick={handleDownload}>
               <Download className="mr-2 h-4 w-4" />
               Download Report
