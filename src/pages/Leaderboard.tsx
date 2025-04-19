@@ -23,6 +23,29 @@ const Leaderboard = () => {
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
+      
+      // Get all profiles data first to ensure we have names for all users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name');
+        
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        toast({
+          title: "Error",
+          description: "Failed to load user profiles",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Create a map of user_id to name for lookup
+      const profileMap = new Map();
+      profilesData?.forEach(profile => {
+        profileMap.set(profile.id, profile.name);
+      });
+      
       // Get leaderboard data
       const { data: leaderboardData, error: leaderboardError } = await supabase
         .from('leaderboard')
@@ -40,32 +63,8 @@ const Leaderboard = () => {
         return;
       }
       
-      // If we have leaderboard entries, get the profile data for each user
+      // Combine the leaderboard data with profile names
       if (leaderboardData && leaderboardData.length > 0) {
-        // Get all user profiles in one query
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .in('id', leaderboardData.map(entry => entry.user_id));
-          
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-          toast({
-            title: "Error",
-            description: "Failed to load user profiles",
-            variant: "destructive"
-          });
-          setLoading(false);
-          return;
-        }
-        
-        // Create a map of user_id to name for easy lookup
-        const profileMap = new Map();
-        profilesData?.forEach(profile => {
-          profileMap.set(profile.id, profile.name);
-        });
-        
-        // Combine the leaderboard data with profile names
         const combinedData = leaderboardData.map(entry => ({
           user_id: entry.user_id,
           total_emissions: entry.total_emissions,

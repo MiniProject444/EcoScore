@@ -253,6 +253,41 @@ export const api = {
           throw error;
         }
 
+        // Wait for auth to complete, then ensure the profile exists
+        if (data.user) {
+          try {
+            // Check if profile already exists
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', data.user.id)
+              .single();
+              
+            if (profileError && profileError.code !== 'PGRST116') { // Not found error
+              console.error("Error checking profile:", profileError);
+            }
+            
+            // Create profile if it doesn't exist
+            if (!profileData) {
+              const { error: insertError } = await supabase
+                .from('profiles')
+                .insert({ 
+                  id: data.user.id, 
+                  name: name,
+                  email: email,
+                });
+                
+              if (insertError) {
+                console.error("Error creating profile:", insertError);
+              } else {
+                console.log("Created profile for user:", data.user.id);
+              }
+            }
+          } catch (profileError) {
+            console.error("Profile creation error:", profileError);
+          }
+        }
+
         return {
           user: {
             id: data.user?.id || '',
