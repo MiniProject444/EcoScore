@@ -1,4 +1,3 @@
-
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -329,10 +328,11 @@ export const api = {
               input_data: validFormData
             };
 
-            // Get existing calculations from localStorage
+            // Get existing calculations from localStorage using userId as key
+            let userCalculationsKey = `calculations-${userId}`;
             let calculations = [];
             try {
-              const existingData = localStorage.getItem('calculations');
+              const existingData = localStorage.getItem(userCalculationsKey);
               calculations = existingData ? JSON.parse(existingData) : [];
               if (!Array.isArray(calculations)) {
                 console.error("Invalid calculations format in localStorage");
@@ -345,7 +345,7 @@ export const api = {
             
             // Add the new calculation and save back to localStorage
             calculations.push(newCalculation);
-            localStorage.setItem('calculations', JSON.stringify(calculations));
+            localStorage.setItem(userCalculationsKey, JSON.stringify(calculations));
             
             console.log("Stored new calculation for user:", userId, newCalculation);
             
@@ -427,12 +427,14 @@ export const api = {
         } catch (apiError) {
           console.log("API getUserCalculations failed, using localStorage instead:", apiError);
           
-          // Get all calculations from localStorage
-          let allCalculations = [];
+          // Use userId-specific key to get calculations from localStorage
+          const userCalculationsKey = `calculations-${userId}`;
+          let userCalculations = [];
+          
           try {
-            const existingData = localStorage.getItem('calculations');
-            allCalculations = existingData ? JSON.parse(existingData) : [];
-            if (!Array.isArray(allCalculations)) {
+            const existingData = localStorage.getItem(userCalculationsKey);
+            userCalculations = existingData ? JSON.parse(existingData) : [];
+            if (!Array.isArray(userCalculations)) {
               console.error("Invalid calculations format in localStorage");
               return [];
             }
@@ -441,30 +443,12 @@ export const api = {
             return [];
           }
           
-          console.log("All calculations in localStorage:", allCalculations);
-          console.log("Current user ID:", userId);
-          
-          // Filter calculations for the current user
-          const userCalculations = allCalculations
-            .filter((calc: any) => {
-              if (!calc) return false;
-              
-              const isUserCalc = calc.user_id === userId;
-              const hasValidData = calc.result_data && calc.result_data.total != null;
-              
-              if (!isUserCalc) {
-                console.log("Skipping calculation for different user. Expected:", userId, "Got:", calc.user_id);
-              }
-              if (!hasValidData) {
-                console.log("Skipping calculation with invalid data:", calc);
-              }
-              
-              return isUserCalc && hasValidData;
-            })
-            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          
           console.log("Retrieved user calculations from localStorage:", userCalculations);
-          return userCalculations;
+          
+          // Sort calculations by date (newest first)
+          return userCalculations.sort((a: any, b: any) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         }
       } catch (error) {
         console.error("Get user calculations failed:", error);
