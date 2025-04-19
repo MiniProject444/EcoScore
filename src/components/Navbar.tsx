@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,8 @@ import {
   User, 
   HelpCircle, 
   Info,
-  Leaf
+  Leaf,
+  Trophy
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuthStore } from "@/stores/authStore";
@@ -59,6 +59,14 @@ const Navbar = () => {
             {isMenuOpen && (
               <div className="fixed inset-0 top-14 bg-white z-40 animate-fade-in">
                 <div className="flex flex-col p-4 space-y-4">
+                  <Link
+                    to="/leaderboard"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-eco-neutral-100 rounded-md"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Trophy className="h-5 w-5 text-eco-neutral-500" />
+                    <span>Leaderboard</span>
+                  </Link>
                   <Link
                     to="/help"
                     className="flex items-center gap-2 px-4 py-2 hover:bg-eco-neutral-100 rounded-md"
@@ -125,6 +133,15 @@ const Navbar = () => {
         ) : (
           <div className="hidden lg:flex items-center space-x-8">
             <div className="space-x-6">
+              <Link
+                to="/leaderboard"
+                className="text-eco-neutral-500 hover:text-eco-neutral-700 transition-colors"
+              >
+                <Button variant="ghost" size="sm">
+                  <Trophy className="h-4 w-4 mr-2" />
+                  Leaderboard
+                </Button>
+              </Link>
               <Link
                 to="/help"
                 className="text-eco-neutral-500 hover:text-eco-neutral-700 transition-colors"

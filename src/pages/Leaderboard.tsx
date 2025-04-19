@@ -1,0 +1,82 @@
+
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from "@/components/ui/card";
+import { Medal } from 'lucide-react';
+
+interface LeaderboardEntry {
+  user_id: string;
+  total_emissions: number;
+  profiles: {
+    name: string;
+  };
+}
+
+const Leaderboard = () => {
+  const [users, setUsers] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('leaderboard')
+          .select(`
+            user_id,
+            total_emissions,
+            profiles (
+              name
+            )
+          `)
+          .order('total_emissions', { ascending: true });
+
+        if (error) throw error;
+        setUsers(data || []);
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
+
+  if (loading) {
+    return <div className="container mx-auto p-4">Loading leaderboard...</div>;
+  }
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold text-center mb-8">Carbon Footprint Leaderboard</h1>
+      <div className="max-w-2xl mx-auto space-y-4">
+        {users.map((user, index) => (
+          <Card key={user.user_id} className={`${index < 3 ? 'border-2 border-primary' : ''}`}>
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 w-8 text-center">
+                  {index < 3 && (
+                    <Medal className={`h-6 w-6 ${
+                      index === 0 ? 'text-yellow-500' :
+                      index === 1 ? 'text-gray-400' :
+                      'text-amber-600'
+                    }`} />
+                  )}
+                  {index >= 3 && <span className="text-gray-500">#{index + 1}</span>}
+                </div>
+                <div>
+                  <p className="font-medium">{user.profiles?.name || 'Anonymous User'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {user.total_emissions.toFixed(1)} kg CO₂e
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default Leaderboard;
