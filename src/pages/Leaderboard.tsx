@@ -65,11 +65,16 @@ const Leaderboard = () => {
       
       // Combine the leaderboard data with profile names
       if (leaderboardData && leaderboardData.length > 0) {
-        const combinedData = leaderboardData.map(entry => ({
-          user_id: entry.user_id,
-          total_emissions: entry.total_emissions,
-          name: profileMap.get(entry.user_id) || 'Anonymous User'
-        }));
+        const combinedData = leaderboardData.map(entry => {
+          // Get the name from the profileMap or use 'Anonymous User' as fallback
+          const userName = profileMap.get(entry.user_id);
+          console.log(`User ID: ${entry.user_id}, Mapped Name: ${userName || 'not found'}`);
+          return {
+            user_id: entry.user_id,
+            total_emissions: entry.total_emissions,
+            name: userName || 'Anonymous User'
+          };
+        });
         
         setUsers(combinedData);
       } else {
