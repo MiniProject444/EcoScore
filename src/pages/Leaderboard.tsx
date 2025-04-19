@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Medal } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface LeaderboardEntry {
   user_id: string;
@@ -13,54 +14,79 @@ interface LeaderboardEntry {
 const Leaderboard = () => {
   const [users, setUsers] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        // Get leaderboard data
-        const { data: leaderboardData, error: leaderboardError } = await supabase
-          .from('leaderboard')
-          .select('user_id, total_emissions')
-          .order('total_emissions', { ascending: true });
-
-        if (leaderboardError) throw leaderboardError;
-        
-        // If we have leaderboard entries, get the profile data for each user
-        if (leaderboardData && leaderboardData.length > 0) {
-          // Get all user profiles in one query
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, name')
-            .in('id', leaderboardData.map(entry => entry.user_id));
-            
-          if (profilesError) throw profilesError;
-          
-          // Create a map of user_id to name for easy lookup
-          const profileMap = new Map();
-          profilesData?.forEach(profile => {
-            profileMap.set(profile.id, profile.name);
-          });
-          
-          // Combine the leaderboard data with profile names
-          const combinedData = leaderboardData.map(entry => ({
-            user_id: entry.user_id,
-            total_emissions: entry.total_emissions,
-            name: profileMap.get(entry.user_id) || 'Anonymous User'
-          }));
-          
-          setUsers(combinedData);
-        } else {
-          setUsers([]);
-        }
-      } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchLeaderboard();
   }, []);
+
+  const fetchLeaderboard = async () => {
+    try {
+      setLoading(true);
+      // Get leaderboard data
+      const { data: leaderboardData, error: leaderboardError } = await supabase
+        .from('leaderboard')
+        .select('user_id, total_emissions')
+        .order('total_emissions', { ascending: true });
+
+      if (leaderboardError) {
+        console.error('Error fetching leaderboard:', leaderboardError);
+        toast({
+          title: "Error",
+          description: "Failed to load leaderboard data",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // If we have leaderboard entries, get the profile data for each user
+      if (leaderboardData && leaderboardData.length > 0) {
+        // Get all user profiles in one query
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', leaderboardData.map(entry => entry.user_id));
+          
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          toast({
+            title: "Error",
+            description: "Failed to load user profiles",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // Create a map of user_id to name for easy lookup
+        const profileMap = new Map();
+        profilesData?.forEach(profile => {
+          profileMap.set(profile.id, profile.name);
+        });
+        
+        // Combine the leaderboard data with profile names
+        const combinedData = leaderboardData.map(entry => ({
+          user_id: entry.user_id,
+          total_emissions: entry.total_emissions,
+          name: profileMap.get(entry.user_id) || 'Anonymous User'
+        }));
+        
+        setUsers(combinedData);
+      } else {
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('Error in leaderboard processing:', error);
+      toast({
+        title: "Error",
+        description: "Something went wrong loading the leaderboard",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return <div className="container mx-auto p-4">Loading leaderboard...</div>;

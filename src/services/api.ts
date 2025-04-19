@@ -348,6 +348,52 @@ export const api = {
             localStorage.setItem('calculations', JSON.stringify(calculations));
             
             console.log("Stored new calculation for user:", userId, newCalculation);
+            
+            // Update the leaderboard with the user's total emissions
+            try {
+              // First, check if the user already has an entry in the leaderboard
+              const { data: existingEntry, error: fetchError } = await supabase
+                .from('leaderboard')
+                .select('id, total_emissions')
+                .eq('user_id', userId)
+                .single();
+                
+              if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
+                console.error("Error checking leaderboard entry:", fetchError);
+              }
+              
+              const totalEmissions = mockResult.total;
+              
+              if (existingEntry) {
+                // Update the existing entry with the new emissions value
+                const { error: updateError } = await supabase
+                  .from('leaderboard')
+                  .update({ total_emissions: totalEmissions, updated_at: new Date().toISOString() })
+                  .eq('user_id', userId);
+                  
+                if (updateError) {
+                  console.error("Error updating leaderboard:", updateError);
+                } else {
+                  console.log("Updated leaderboard entry for user:", userId, totalEmissions);
+                }
+              } else {
+                // Insert a new entry for this user
+                const { error: insertError } = await supabase
+                  .from('leaderboard')
+                  .insert({ 
+                    user_id: userId, 
+                    total_emissions: totalEmissions
+                  });
+                  
+                if (insertError) {
+                  console.error("Error inserting leaderboard entry:", insertError);
+                } else {
+                  console.log("Added new leaderboard entry for user:", userId, totalEmissions);
+                }
+              }
+            } catch (leaderboardError) {
+              console.error("Failed to update leaderboard:", leaderboardError);
+            }
           }
           
           return mockResult;
