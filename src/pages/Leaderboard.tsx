@@ -25,29 +25,7 @@ const Leaderboard = () => {
     try {
       setLoading(true);
       
-      // Get all profiles data first to ensure we have names for all users
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, name');
-        
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        toast({
-          title: "Error",
-          description: "Failed to load user profiles",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // Create a map of user_id to name for lookup
-      const profileMap = new Map();
-      profilesData?.forEach(profile => {
-        profileMap.set(profile.id, profile.name);
-      });
-      
-      // Get leaderboard data
+      // Get leaderboard data first
       const { data: leaderboardData, error: leaderboardError } = await supabase
         .from('leaderboard')
         .select('user_id, total_emissions')
@@ -64,12 +42,38 @@ const Leaderboard = () => {
         return;
       }
       
-      // Combine the leaderboard data with profile names
+      // If we have leaderboard data, fetch the corresponding profiles
       if (leaderboardData && leaderboardData.length > 0) {
+        // Extract all user IDs from the leaderboard data
+        const userIds = leaderboardData.map(entry => entry.user_id);
+        
+        // Fetch all profiles that match these user IDs in a single query
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', userIds);
+        
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          toast({
+            title: "Warning",
+            description: "Some user names may not display correctly",
+            variant: "destructive"
+          });
+        }
+        
+        // Create a map of user_id to name from the profiles data
+        const profileMap = new Map();
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            profileMap.set(profile.id, profile.name);
+          });
+        }
+        
+        // Combine the leaderboard data with profile names
         const combinedData = leaderboardData.map(entry => {
           // Get the name from the profileMap or use 'Anonymous User' as fallback
           const userName = profileMap.get(entry.user_id);
-          console.log(`User ID: ${entry.user_id}, Mapped Name: ${userName || 'not found'}`);
           return {
             user_id: entry.user_id,
             total_emissions: entry.total_emissions,
