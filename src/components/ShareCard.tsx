@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Card, CardContent } from "./ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Instagram, Twitter, MessageSquare } from "lucide-react";
+import { Instagram, Twitter, MessageSquare, Share2 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 
 interface ShareCardProps {
