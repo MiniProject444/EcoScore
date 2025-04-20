@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Medal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -24,36 +25,18 @@ const Leaderboard = () => {
     try {
       setLoading(true);
       
-      // Get all profiles data first to ensure we have names for all users
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, name');
-        
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        toast({
-          title: "Error",
-          description: "Failed to load user profiles",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // Create a map of user_id to name for lookup
-      const profileMap = new Map();
-      profilesData?.forEach(profile => {
-        profileMap.set(profile.id, profile.name);
-      });
-      
-      // Get leaderboard data
-      const { data: leaderboardData, error: leaderboardError } = await supabase
+      // Join the leaderboard and profiles tables directly to ensure we get proper name mapping
+      const { data: combinedData, error } = await supabase
         .from('leaderboard')
-        .select('user_id, total_emissions')
+        .select(`
+          user_id,
+          total_emissions,
+          profiles!inner(name)
+        `)
         .order('total_emissions', { ascending: true });
-
-      if (leaderboardError) {
-        console.error('Error fetching leaderboard:', leaderboardError);
+        
+      if (error) {
+        console.error('Error fetching leaderboard data:', error);
         toast({
           title: "Error",
           description: "Failed to load leaderboard data",
@@ -63,20 +46,16 @@ const Leaderboard = () => {
         return;
       }
       
-      // Combine the leaderboard data with profile names
-      if (leaderboardData && leaderboardData.length > 0) {
-        const combinedData = leaderboardData.map(entry => {
-          // Get the name from the profileMap or use 'Anonymous User' as fallback
-          const userName = profileMap.get(entry.user_id);
-          console.log(`User ID: ${entry.user_id}, Mapped Name: ${userName || 'not found'}`);
-          return {
-            user_id: entry.user_id,
-            total_emissions: entry.total_emissions,
-            name: userName || 'Anonymous User'
-          };
-        });
+      // Format the data properly
+      if (combinedData && combinedData.length > 0) {
+        const formattedData = combinedData.map(entry => ({
+          user_id: entry.user_id,
+          total_emissions: entry.total_emissions,
+          name: entry.profiles?.name || 'Anonymous User'
+        }));
         
-        setUsers(combinedData);
+        console.log('Formatted leaderboard data:', formattedData);
+        setUsers(formattedData);
       } else {
         setUsers([]);
       }
