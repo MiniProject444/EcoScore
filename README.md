@@ -1,73 +1,63 @@
-# Welcome to your Lovable project
+# 🌱 EcoScore – Carbon Footprint Calculator Web App
 
-## Project info
+**EcoScore**, also known as, is a sustainability-focused web application that helps users calculate and reduce their **carbon footprint**. Built using TypeScript, Supabase, and React, the app encourages environmentally-conscious living by tracking daily emissions, offering actionable reduction tips, and rewarding users through a gamified leaderboard system.
 
-**URL**: https://lovable.dev/projects/84c6dcdb-b9fb-40ca-b289-ec06c8056cd5
+---
 
-## How can I edit this code?
+## 🧩 Abstract
 
-There are several ways of editing your application.
+With growing concerns about climate change, EcoScore aims to make sustainability more accessible and rewarding. The platform allows users to calculate their carbon footprint based on daily activities and receive personalized recommendations for reduction. Through features like **dashboards**, **leaderboards**, and **reward coupons**, EcoScore motivates users to adopt greener habits in a fun and interactive way.
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/84c6dcdb-b9fb-40ca-b289-ec06c8056cd5) and start prompting.
+## 🌍 Key Features
 
-Changes made via Lovable will be committed automatically to this repo.
+- ✅ Carbon footprint calculation using accurate API data (Climatiq)
+- 🔐 Secure user login and authentication (via Supabase Auth)
+- 📊 Personalized dashboard with graphs and history tracking
+- 🏆 Leaderboards for:
+  - Lowest carbon footprint
+  - Most social shares
+  - Most referrals
+- 🎁 Redeemable reward coupons for top performers
+- 📱 Mobile-responsive design with modern UI/UX
+- 🔄 Real-time database updates with Supabase Realtime
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🧪 Tech Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+|     Technology      |                  Role                         |
+|---------------------|-----------------------------------------------|
+| **React 18**        | Frontend framework                            |
+| **TypeScript**      | Type safety and cleaner code                  |
+| **Tailwind CSS**    | UI styling                                    |
+| **Supabase**        | Backend (PostgreSQL), Auth, Realtime, Storage |
+| **Climatiq API**    | Carbon emission data source                   |
+| **React Router v6** | Client-side routing                           |
+| **Lucide React**    | Icon library for visual appeal                |
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🔐 User Roles
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+|        Role          |                  Description                           |
+|----------------------|--------------------------------------------------------|
+| **Guest**            | Can calculate carbon score only                        |
+| **Registered User**  | Can view tips, dashboard, history                      |
+| **Leaderboard User** | Can earn rewards by ranking high based on eco-activity |
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+🌐 [https://ecoscore.vercel.app](https://eco-score-liard.vercel.app/) <!-- Replace with your actual deployed link -->
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Attribute          | Details                                                                        |
+| ------------------ | ------------------------------------------------------------------------------ |
+| 👨‍💻 Developed By    | Parth Chaudhary, Nishant Ghare, Rudraraj Bhatawdekar, Aayush Jadhav            |
+| 🏁 Built During    | 24-hour Sustainability Hackathon (3rd Year)                                    |
+| 🔗 GitHub Repo     | https://github.com/MiniProject444/EcoScore                                     |
+| 🔐 Auth & DB       | Supabase (PostgreSQL + Auth + Storage)                                         |
+| 📊 API Used        | Climatiq (for CO2e data)                                                       |
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/84c6dcdb-b9fb-40ca-b289-ec06c8056cd5) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes it is!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
