@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from "./ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
@@ -13,7 +12,7 @@ interface ShareCardProps {
 
 const ShareCard = ({ username, totalEmissions }: ShareCardProps) => {
   const { isAuthenticated } = useAuthStore();
-  const websiteUrl = "https://ecoscore-jet.vercel.app/";
+  const websiteUrl = "https://eco-score-liard.vercel.app/";
   
   if (!isAuthenticated) {
     return null;
@@ -57,7 +56,7 @@ const ShareCard = ({ username, totalEmissions }: ShareCardProps) => {
 
               <div className="text-center text-sm text-muted-foreground">
                 <p>Join me in making a difference!</p>
-                <p>Calculate your carbon footprint at ecoscore.com</p>
+                <p>Calculate your carbon footprint at eco-score-liard.vercel.app</p>
               </div>
             </CardContent>
           </Card>
